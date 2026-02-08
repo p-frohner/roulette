@@ -1,0 +1,33 @@
+{
+	"name": "game-of-roulette",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"build": "tsc -b && vite build",
+		"dev": "vite",
+		"lint": "biome check --write ./src",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"@emotion/react": "^11.14.0",
+		"@emotion/styled": "^11.14.1",
+		"@mui/icons-material": "^7.3.6",
+		"@mui/material": "^7.3.6",
+		"@tanstack/react-router": "^1.145.7",
+		"react": "^19.2.0",
+		"react-dom": "^19.2.0",
+		"react-error-boundary": "^6.0.2"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.3.11",
+		"@tanstack/router-plugin": "^1.145.7",
+		"@types/node": "^24.10.1",
+		"@types/react": "^19.2.5",
+		"@types/react-dom": "^19.2.3",
+		"@vitejs/plugin-react": "^5.1.1",
+		"globals": "^16.5.0",
+		"typescript": "~5.9.3",
+		"vite": "^7.2.4"
+	}
+}

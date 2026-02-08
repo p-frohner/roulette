@@ -1,0 +1,77 @@
+package handlers
+
+import (
+	"context"
+	"net/http"
+	"roulette/internal/game"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+)
+
+type Server struct {
+	Hub            *Hub
+	GameManager    *game.Manager
+	AllowedOrigins []string
+}
+
+func NewServer(allowedOrigins []string) *Server {
+	hub := NewHub()
+	go hub.Run()
+
+	gm := game.NewManager(hub.BroadcastToAll, hub.SendToUser)
+	hub.SetGameManager(gm)
+	go gm.RunGameLoop()
+
+	return &Server{
+		Hub:            hub,
+		GameManager:    gm,
+		AllowedOrigins: allowedOrigins,
+	}
+}
+
+func (s *Server) Routes() http.Handler {
+	r := chi.NewRouter()
+
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   s.AllowedOrigins,
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
+	r.Use(middleware.Logger)
+
+	// WebSocket endpoint
+	r.Get("/ws", s.HandleWebSocket)
+
+	return r
+}
+
+func (s *Server) Start(ctx context.Context, addr string) error {
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      s.Routes(),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  15 * time.Second,
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- srv.ListenAndServe()
+	}()
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-ctx.Done():
+		s.GameManager.Stop()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		return srv.Shutdown(shutdownCtx)
+	}
+}
