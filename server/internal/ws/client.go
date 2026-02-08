@@ -1,13 +1,11 @@
-package handlers
+package ws
 
 import (
 	"context"
 	"encoding/json"
 	"log/slog"
-	"sync"
 	"time"
 
-	"roulette/internal/game"
 	"roulette/internal/messages"
 
 	"github.com/coder/websocket"
@@ -19,20 +17,11 @@ const (
 	maxMessageSize = 1024
 )
 
-type Hub struct {
-	clients      map[*Client]bool
-	broadcastAll chan []byte
-	register     chan *Client
-	unregister   chan *Client
-	mu           sync.RWMutex
-	gameManager  *game.Manager
-}
-
 type Client struct {
-	hub    *Hub
+	Hub    *Hub
 	conn   *websocket.Conn
-	send   chan []byte
-	userID string
+	Send   chan []byte
+	UserID string
 }
 
 type ClientMessage struct {
@@ -43,84 +32,21 @@ type ClientMessage struct {
 	Name     string `json:"name"`
 }
 
-func NewHub() *Hub {
-	return &Hub{
-		clients:      make(map[*Client]bool),
-		broadcastAll: make(chan []byte, 256),
-		register:     make(chan *Client),
-		unregister:   make(chan *Client),
-	}
-}
-
-// SetGameManager sets the game manager on the hub.
-func (h *Hub) SetGameManager(gm *game.Manager) {
-	h.gameManager = gm
-}
-
-// BroadcastToAll sends a message to all connected clients.
-func (h *Hub) BroadcastToAll(msg []byte) {
-	h.broadcastAll <- msg
-}
-
-// SendToUser sends a message to a specific user by their user ID.
-func (h *Hub) SendToUser(userID string, msg []byte) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-
-	for client := range h.clients {
-		if client.userID == userID {
-			select {
-			case client.send <- msg:
-			default:
-				// Client too slow, will be cleaned up
-			}
-			return
-		}
-	}
-}
-
-func (h *Hub) Run() {
-	for {
-		select {
-		case client := <-h.register:
-			h.mu.Lock()
-			h.clients[client] = true
-			h.mu.Unlock()
-
-		case client := <-h.unregister:
-			h.mu.Lock()
-			if _, ok := h.clients[client]; ok {
-				delete(h.clients, client)
-				close(client.send)
-			}
-			h.mu.Unlock()
-
-		case message := <-h.broadcastAll:
-			var slowClients []*Client
-
-			h.mu.RLock()
-			for client := range h.clients {
-				select {
-				case client.send <- message:
-				default:
-					slowClients = append(slowClients, client)
-				}
-			}
-			h.mu.RUnlock()
-
-			for _, client := range slowClients {
-				h.unregister <- client
-			}
-		}
+func NewClient(hub *Hub, conn *websocket.Conn, userID string) *Client {
+	return &Client{
+		Hub:    hub,
+		conn:   conn,
+		Send:   make(chan []byte, 256),
+		UserID: userID,
 	}
 }
 
 func (c *Client) ReadPump() {
 	defer func() {
-		if c.hub.gameManager != nil {
-			c.hub.gameManager.UnregisterUser(c.userID)
+		if c.Hub.gameManager != nil {
+			c.Hub.gameManager.UnregisterUser(c.UserID)
 		}
-		c.hub.unregister <- c
+		c.Hub.Unregister(c)
 		c.conn.CloseNow()
 	}()
 
@@ -131,40 +57,40 @@ func (c *Client) ReadPump() {
 		if err != nil {
 			status := websocket.CloseStatus(err)
 			if status != websocket.StatusNormalClosure && status != websocket.StatusGoingAway {
-				slog.Error("WebSocket read error", "error", err, "user_id", c.userID)
+				slog.Error("WebSocket read error", "error", err, "user_id", c.UserID)
 			}
 			break
 		}
 
 		var msg ClientMessage
 		if err := json.Unmarshal(message, &msg); err != nil {
-			slog.Warn("failed to parse client message", "error", err, "user_id", c.userID)
+			slog.Warn("failed to parse client message", "error", err, "user_id", c.UserID)
 			continue
 		}
 
 		switch msg.Action {
 		case "set_name":
-			if c.hub.gameManager == nil {
+			if c.Hub.gameManager == nil {
 				continue
 			}
-			c.hub.gameManager.SetUserName(c.userID, msg.Name)
+			c.Hub.gameManager.SetUserName(c.UserID, msg.Name)
 
 		case "place_bet":
-			if c.hub.gameManager == nil {
+			if c.Hub.gameManager == nil {
 				continue
 			}
 
-			errMsg, newBalance := c.hub.gameManager.PlaceBet(c.userID, msg.BetType, msg.BetValue, msg.Amount)
-			if errMsg != "" {
+			newBalance, betErr := c.Hub.gameManager.PlaceBet(c.UserID, msg.BetType, msg.BetValue, msg.Amount)
+			if betErr != nil {
 				resp, err := json.Marshal(messages.BetRejectedMessage{
 					Type:   "bet_rejected",
-					Reason: errMsg,
+					Reason: betErr.Error(),
 				})
 				if err != nil {
 					slog.Error("failed to marshal bet_rejected", "error", err)
 					continue
 				}
-				c.send <- resp
+				c.Send <- resp
 			} else {
 				resp, err := json.Marshal(messages.BetAcceptedMessage{
 					Type:     "bet_accepted",
@@ -177,10 +103,10 @@ func (c *Client) ReadPump() {
 					slog.Error("failed to marshal bet_accepted", "error", err)
 					continue
 				}
-				c.send <- resp
+				c.Send <- resp
 
 				// Broadcast bet to all players
-				playerName := c.hub.gameManager.GetUserName(c.userID)
+				playerName := c.Hub.gameManager.GetUserName(c.UserID)
 				broadcast, err := json.Marshal(messages.BetPlacedMessage{
 					Type:       "bet_placed",
 					PlayerName: playerName,
@@ -192,7 +118,7 @@ func (c *Client) ReadPump() {
 					slog.Error("failed to marshal bet_placed", "error", err)
 					continue
 				}
-				c.hub.BroadcastToAll(broadcast)
+				c.Hub.BroadcastToAll(broadcast)
 			}
 		}
 	}
@@ -207,7 +133,7 @@ func (c *Client) WritePump() {
 
 	for {
 		select {
-		case message, ok := <-c.send:
+		case message, ok := <-c.Send:
 			if !ok {
 				c.conn.Close(websocket.StatusNormalClosure, "")
 				return

@@ -1,4 +1,4 @@
-import { Box, Chip, LinearProgress, Typography } from "@mui/material";
+import { Box, Chip, CircularProgress, LinearProgress, Typography } from "@mui/material";
 import { getNumberColor } from "../../data/rouletteNumbers";
 import type { GamePhase } from "../../types/game";
 
@@ -12,7 +12,13 @@ interface Props {
 	showResult: boolean;
 }
 
-export const GameStatus = ({ gamePhase, countdown, winningNumber, connected, showResult }: Props) => {
+export const GameStatus = ({
+	gamePhase,
+	countdown,
+	winningNumber,
+	connected,
+	showResult,
+}: Props) => {
 	if (!connected) {
 		return (
 			<Box textAlign="center" py={2}>
@@ -24,23 +30,17 @@ export const GameStatus = ({ gamePhase, countdown, winningNumber, connected, sho
 	}
 
 	return (
-		<Box py={2}>
+		<Box py={2} display="flex" justifyContent="center">
 			{gamePhase === "BETTING" && (
-				<>
-					<Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-						<Typography variant="h6" fontWeight={700} color="secondary.main">
-							Place Your Bets
-						</Typography>
-						<Typography variant="h6" fontWeight={700}>
-							{countdown}s
-						</Typography>
-					</Box>
-					<LinearProgress
+				<Box sx={{ position: "relative", display: "inline-flex" }}>
+					<CircularProgress
 						variant="determinate"
 						value={(countdown / BETTING_DURATION) * 100}
+						size={60}
 						sx={{
-							height: 8,
-							borderRadius: 4,
+							height: 60,
+							width: 60,
+							borderRadius: 30,
 							backgroundColor: "rgba(255,255,255,0.1)",
 							"& .MuiLinearProgress-bar": {
 								borderRadius: 4,
@@ -48,7 +48,25 @@ export const GameStatus = ({ gamePhase, countdown, winningNumber, connected, sho
 							},
 						}}
 					/>
-				</>
+					<Box
+						sx={{
+							top: 0,
+							left: 0,
+							bottom: 0,
+							right: 0,
+							position: "absolute",
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "center",
+						}}
+					>
+						<Typography
+							variant="caption"
+							component="div"
+							sx={{ color: "text.secondary" }}
+						>{`${Math.round(countdown)}s`}</Typography>
+					</Box>
+				</Box>
 			)}
 
 			{(gamePhase === "SPINNING" || (gamePhase === "RESULT" && !showResult)) && (

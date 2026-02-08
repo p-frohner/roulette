@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"roulette/internal/game"
+	"roulette/internal/ws"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -12,13 +13,13 @@ import (
 )
 
 type Server struct {
-	Hub            *Hub
+	Hub            *ws.Hub
 	GameManager    *game.Manager
 	AllowedOrigins []string
 }
 
 func NewServer(allowedOrigins []string) *Server {
-	hub := NewHub()
+	hub := ws.NewHub()
 	go hub.Run()
 
 	gm := game.NewManager(hub.BroadcastToAll, hub.SendToUser)
@@ -45,6 +46,11 @@ func (s *Server) Routes() http.Handler {
 	}))
 	r.Use(middleware.Logger)
 
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
+
 	// WebSocket endpoint
 	r.Get("/ws", s.HandleWebSocket)
 
@@ -70,6 +76,7 @@ func (s *Server) Start(ctx context.Context, addr string) error {
 		return err
 	case <-ctx.Done():
 		s.GameManager.Stop()
+		s.Hub.Stop()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		return srv.Shutdown(shutdownCtx)

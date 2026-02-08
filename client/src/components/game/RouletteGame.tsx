@@ -70,6 +70,7 @@ export const RouletteGame = () => {
 			sx={{
 				p: 2,
 				height: "100vh",
+				minHeight: "600px",
 				boxSizing: "border-box",
 				overflow: "hidden",
 				display: "flex",
@@ -78,7 +79,7 @@ export const RouletteGame = () => {
 		>
 			<Stack direction="row" gap={4} flex={1} minHeight={0}>
 				<Stack direction="column" flex={1} minHeight={0} gap={2}>
-					<Box flex={1} minHeight={0} p={2}>
+					<Box flex={1} minHeight={200} p={2}>
 						<RouletteWheel
 							gamePhase={gamePhase}
 							winningNumber={winningNumber}
@@ -86,12 +87,25 @@ export const RouletteGame = () => {
 						/>
 					</Box>
 					<Box flex="none">
-						<BetControls
-							balance={balance}
-							selectedChip={selectedChip}
-							onSelectChip={setSelectedChip}
-							disabled={bettingDisabled}
-						/>
+						<Stack direction="row" flex={1} alignItems="center" gap={4} height={80}>
+							<Box flex="1" alignItems="center">
+								<GameStatus
+									gamePhase={gamePhase}
+									countdown={countdown}
+									winningNumber={winningNumber}
+									connected={connected}
+									showResult={wheelSettled}
+								/>
+							</Box>
+							<Box flex="1" justifyContent="end">
+								<BetControls
+									balance={balance}
+									selectedChip={selectedChip}
+									onSelectChip={setSelectedChip}
+									disabled={bettingDisabled}
+								/>
+							</Box>
+						</Stack>
 					</Box>
 					<Box flex="none">
 						<BettingBoard
@@ -102,16 +116,7 @@ export const RouletteGame = () => {
 						/>
 					</Box>
 				</Stack>
-				<Box flex={0.5} display="flex" flexDirection="column" minHeight={0}>
-					<Box flex="none">
-						<GameStatus
-							gamePhase={gamePhase}
-							countdown={countdown}
-							winningNumber={winningNumber}
-							connected={connected}
-							showResult={wheelSettled}
-						/>
-					</Box>
+				<Box flex={0.5} display="flex" flexDirection="column">
 					<Box flex={1} minHeight={0} overflow="hidden">
 						<ActivityLog activityLog={activityLog} />
 					</Box>

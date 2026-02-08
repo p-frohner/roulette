@@ -3,11 +3,30 @@ package game
 import (
 	"encoding/json"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"roulette/internal/messages"
 )
+
+const maxNameLength = 20
+
+func sanitizeName(name string) string {
+	name = strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, name)
+	name = strings.TrimSpace(name)
+	runes := []rune(name)
+	if len(runes) > maxNameLength {
+		runes = runes[:maxNameLength]
+	}
+	return string(runes)
+}
 
 // BroadcastFunc sends a message to all connected clients.
 type BroadcastFunc func([]byte)
@@ -67,6 +86,10 @@ func (m *Manager) GetUser(userID string) *User {
 
 // SetUserName sets a display name for the user, appending #<first 4 chars of userID>.
 func (m *Manager) SetUserName(userID, name string) {
+	name = sanitizeName(name)
+	if name == "" {
+		return
+	}
 	user := m.GetUser(userID)
 	if user == nil {
 		return
@@ -101,33 +124,34 @@ func (m *Manager) History() []int {
 }
 
 // PlaceBet validates and places a bet for a user.
-// Returns an error message (empty on success) and the user's new balance.
-func (m *Manager) PlaceBet(userID, betType, betValue string, amount int64) (string, int64) {
-	// Check game state
-	m.sessionMu.RLock()
-	state := m.session.State
-	m.sessionMu.RUnlock()
-
-	if state != StateBetting {
-		return "Betting is closed", 0
+// Returns the user's new balance and an error if the bet was rejected.
+func (m *Manager) PlaceBet(userID, betType, betValue string, amount int64) (int64, error) {
+	// Validate bet (pure function, no lock needed)
+	if err := ValidateBet(betType, betValue, amount); err != nil {
+		return 0, err
 	}
 
-	// Validate bet
-	if errMsg := ValidateBet(betType, betValue, amount); errMsg != "" {
-		return errMsg, 0
+	// Hold session RLock for the entire state-check + bet-append window.
+	// This prevents runSpinningPhase from acquiring the write lock
+	// until all in-flight PlaceBet calls have completed.
+	m.sessionMu.RLock()
+	defer m.sessionMu.RUnlock()
+
+	if m.session.State != StateBetting {
+		return 0, ErrBettingClosed
 	}
 
 	// Find user
 	user := m.GetUser(userID)
 	if user == nil {
-		return "User not found", 0
+		return 0, ErrUserNotFound
 	}
 
 	// Deduct balance
 	user.mu.Lock()
 	if user.Balance < amount {
 		user.mu.Unlock()
-		return "Insufficient balance", 0
+		return 0, ErrInsufficientBalance
 	}
 	user.Balance -= amount
 	newBalance := user.Balance
@@ -141,13 +165,11 @@ func (m *Manager) PlaceBet(userID, betType, betValue string, amount int64) (stri
 		Amount: amount,
 	}
 
-	m.sessionMu.RLock()
 	m.session.mu.Lock()
 	m.session.Bets = append(m.session.Bets, bet)
 	m.session.mu.Unlock()
-	m.sessionMu.RUnlock()
 
-	return "", newBalance
+	return newBalance, nil
 }
 
 // RunGameLoop runs the infinite game loop cycling through phases.
@@ -296,6 +318,17 @@ func (m *Manager) runResultPhase() {
 		return
 	case <-time.After(ResultDuration):
 	}
+
+	// Refill any players who hit zero
+	m.usersMu.RLock()
+	for _, user := range m.users {
+		user.mu.Lock()
+		if user.Balance == 0 {
+			user.Balance = StartingBalance
+		}
+		user.mu.Unlock()
+	}
+	m.usersMu.RUnlock()
 }
 
 func (m *Manager) broadcastGameState(state messages.GamePhase, winningNumber int, countdown int) {

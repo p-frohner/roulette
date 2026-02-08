@@ -116,81 +116,81 @@ func TestCalculatePayouts_DozensLossOnZero(t *testing.T) {
 // --- ValidateBet tests ---
 
 func TestValidateBet_ValidStraight(t *testing.T) {
-	if msg := ValidateBet("straight", "0", 100); msg != "" {
-		t.Errorf("expected valid, got: %s", msg)
+	if err := ValidateBet("straight", "0", 100); err != nil {
+		t.Errorf("expected valid, got: %v", err)
 	}
-	if msg := ValidateBet("straight", "36", 100); msg != "" {
-		t.Errorf("expected valid, got: %s", msg)
+	if err := ValidateBet("straight", "36", 100); err != nil {
+		t.Errorf("expected valid, got: %v", err)
 	}
 }
 
 func TestValidateBet_InvalidStraight(t *testing.T) {
-	if msg := ValidateBet("straight", "37", 100); msg == "" {
+	if err := ValidateBet("straight", "37", 100); err == nil {
 		t.Error("expected error for value 37")
 	}
-	if msg := ValidateBet("straight", "-1", 100); msg == "" {
+	if err := ValidateBet("straight", "-1", 100); err == nil {
 		t.Error("expected error for value -1")
 	}
-	if msg := ValidateBet("straight", "abc", 100); msg == "" {
+	if err := ValidateBet("straight", "abc", 100); err == nil {
 		t.Error("expected error for non-numeric value")
 	}
 }
 
 func TestValidateBet_ValidColor(t *testing.T) {
-	if msg := ValidateBet("color", "red", 100); msg != "" {
-		t.Errorf("expected valid, got: %s", msg)
+	if err := ValidateBet("color", "red", 100); err != nil {
+		t.Errorf("expected valid, got: %v", err)
 	}
-	if msg := ValidateBet("color", "black", 100); msg != "" {
-		t.Errorf("expected valid, got: %s", msg)
+	if err := ValidateBet("color", "black", 100); err != nil {
+		t.Errorf("expected valid, got: %v", err)
 	}
 }
 
 func TestValidateBet_InvalidColor(t *testing.T) {
-	if msg := ValidateBet("color", "green", 100); msg == "" {
+	if err := ValidateBet("color", "green", 100); err == nil {
 		t.Error("expected error for green")
 	}
 }
 
 func TestValidateBet_ValidEvenOdd(t *testing.T) {
-	if msg := ValidateBet("even_odd", "even", 100); msg != "" {
-		t.Errorf("expected valid, got: %s", msg)
+	if err := ValidateBet("even_odd", "even", 100); err != nil {
+		t.Errorf("expected valid, got: %v", err)
 	}
-	if msg := ValidateBet("even_odd", "odd", 100); msg != "" {
-		t.Errorf("expected valid, got: %s", msg)
+	if err := ValidateBet("even_odd", "odd", 100); err != nil {
+		t.Errorf("expected valid, got: %v", err)
 	}
 }
 
 func TestValidateBet_InvalidEvenOdd(t *testing.T) {
-	if msg := ValidateBet("even_odd", "neither", 100); msg == "" {
+	if err := ValidateBet("even_odd", "neither", 100); err == nil {
 		t.Error("expected error for neither")
 	}
 }
 
 func TestValidateBet_ValidDozens(t *testing.T) {
 	for _, v := range []string{"first", "second", "third"} {
-		if msg := ValidateBet("dozens", v, 100); msg != "" {
-			t.Errorf("expected valid for %s, got: %s", v, msg)
+		if err := ValidateBet("dozens", v, 100); err != nil {
+			t.Errorf("expected valid for %s, got: %v", v, err)
 		}
 	}
 }
 
 func TestValidateBet_InvalidDozens(t *testing.T) {
-	if msg := ValidateBet("dozens", "fourth", 100); msg == "" {
+	if err := ValidateBet("dozens", "fourth", 100); err == nil {
 		t.Error("expected error for fourth")
 	}
 }
 
 func TestValidateBet_InvalidAmount(t *testing.T) {
-	if msg := ValidateBet("straight", "5", 0); msg == "" {
+	if err := ValidateBet("straight", "5", 0); err == nil {
 		t.Error("expected error for zero amount")
 	}
-	if msg := ValidateBet("straight", "5", -100); msg == "" {
+	if err := ValidateBet("straight", "5", -100); err == nil {
 		t.Error("expected error for negative amount")
 	}
 }
 
 func TestValidateBet_UnknownType(t *testing.T) {
-	if msg := ValidateBet("split", "1-2", 100); msg == "" {
+	if err := ValidateBet("split", "1-2", 100); err == nil {
 		t.Error("expected error for unknown bet type")
 	}
 }
@@ -206,8 +206,8 @@ func TestPlaceBet_RejectsWhenNotBetting(t *testing.T) {
 	m.session.State = StateSpinning
 	m.sessionMu.Unlock()
 
-	errMsg, _ := m.PlaceBet("u1", "straight", "5", 100)
-	if errMsg == "" {
+	_, err := m.PlaceBet("u1", "straight", "5", 100)
+	if err == nil {
 		t.Error("expected error when not in betting state")
 	}
 }
@@ -221,8 +221,8 @@ func TestPlaceBet_RejectsInsufficientBalance(t *testing.T) {
 	m.session.State = StateBetting
 	m.sessionMu.Unlock()
 
-	errMsg, _ := m.PlaceBet("u1", "straight", "5", StartingBalance+1)
-	if errMsg == "" {
+	_, err := m.PlaceBet("u1", "straight", "5", StartingBalance+1)
+	if err == nil {
 		t.Error("expected error for insufficient balance")
 	}
 }
@@ -235,9 +235,9 @@ func TestPlaceBet_Success(t *testing.T) {
 	m.session.State = StateBetting
 	m.sessionMu.Unlock()
 
-	errMsg, newBalance := m.PlaceBet("u1", "straight", "5", 500)
-	if errMsg != "" {
-		t.Errorf("unexpected error: %s", errMsg)
+	newBalance, err := m.PlaceBet("u1", "straight", "5", 500)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
 	}
 	if newBalance != StartingBalance-500 {
 		t.Errorf("expected balance %d, got %d", StartingBalance-500, newBalance)

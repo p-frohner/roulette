@@ -9,6 +9,7 @@ import type {
 	ResultMessage,
 	ServerMessage,
 } from "../types/game";
+import { showGlobalNotification } from "../utils/notificationHandler";
 
 type PendingBet = {
 	betType: BetType;
@@ -172,6 +173,7 @@ const handleServerMessage = (
 			break;
 		case "bet_rejected":
 			dispatch({ type: "bet_rejected", message: msg });
+			showGlobalNotification(msg.reason, "error");
 			break;
 		case "result":
 			dispatch({ type: "result", message: msg });

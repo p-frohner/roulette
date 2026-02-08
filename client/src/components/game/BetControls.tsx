@@ -13,9 +13,19 @@ const formatCents = (cents: number): string => `$${(cents / 100).toFixed(2)}`;
 
 export const BetControls = ({ balance, selectedChip, onSelectChip, disabled }: Props) => {
 	return (
-		<Stack direction="row" gap={2}>
+		<Stack direction="column" alignItems="flex-end">
+			{/* Balance */}
+			<Box display="flex" flex={0} mb={2} alignItems="center">
+				<Typography variant="body2" color="text.secondary" mr={2}>
+					Balance
+				</Typography>
+				<Typography variant="h6" fontWeight={700} color="secondary.main">
+					{formatCents(balance)}
+				</Typography>
+			</Box>
+
 			{/* Chip selector */}
-			<Box display="flex" gap={1} flexWrap="wrap" mb={2} flex={1}>
+			<Box display="flex" gap={1} flexWrap="wrap" mb={2}>
 				{CHIP_VALUES.map((value) => (
 					<Button
 						key={value}
@@ -24,6 +34,7 @@ export const BetControls = ({ balance, selectedChip, onSelectChip, disabled }: P
 						disabled={disabled}
 						onClick={() => onSelectChip(value)}
 						sx={{
+							height: "auto",
 							minWidth: 64,
 							color: selectedChip === value ? "#000" : "secondary.main",
 							backgroundColor: selectedChip === value ? "secondary.main" : "transparent",
@@ -38,16 +49,6 @@ export const BetControls = ({ balance, selectedChip, onSelectChip, disabled }: P
 						{formatCents(value)}
 					</Button>
 				))}
-			</Box>
-
-			{/* Balance */}
-			<Box display="flex" flex={0} mb={2} alignItems="center">
-				<Typography variant="body2" color="text.secondary" mr={2}>
-					Balance
-				</Typography>
-				<Typography variant="h6" fontWeight={700} color="secondary.main">
-					{formatCents(balance)}
-				</Typography>
 			</Box>
 		</Stack>
 	);

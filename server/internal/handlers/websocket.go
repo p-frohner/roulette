@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"roulette/internal/messages"
+	"roulette/internal/ws"
 
 	"github.com/coder/websocket"
 )
@@ -32,29 +33,21 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	userID := generateUserID()
 
-	client := &Client{
-		hub:    s.Hub,
-		conn:   conn,
-		send:   make(chan []byte, 256),
-		userID: userID,
-	}
-
-	s.Hub.register <- client
+	client := ws.NewClient(s.Hub, conn, userID)
+	s.Hub.Register(client)
 
 	// Register user with game manager and send welcome message
-	if s.Hub.gameManager != nil {
-		user := s.Hub.gameManager.RegisterUser(userID)
-		welcome, err := json.Marshal(messages.WelcomeMessage{
-			Type:    "welcome",
-			UserID:  userID,
-			Balance: user.Balance,
-			History: s.Hub.gameManager.History(),
-		})
-		if err != nil {
-			slog.Error("failed to marshal welcome message", "error", err)
-		} else {
-			client.send <- welcome
-		}
+	user := s.GameManager.RegisterUser(userID)
+	welcome, err := json.Marshal(messages.WelcomeMessage{
+		Type:    "welcome",
+		UserID:  userID,
+		Balance: user.Balance,
+		History: s.GameManager.History(),
+	})
+	if err != nil {
+		slog.Error("failed to marshal welcome message", "error", err)
+	} else {
+		client.Send <- welcome
 	}
 
 	go client.WritePump()
