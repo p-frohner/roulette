@@ -1,6 +1,6 @@
 # Game Of Roulette
 
-<img width="1188" height="881" alt="Screenshot 2026-02-08 at 17 27 15" src="https://github.com/user-attachments/assets/5be2b5bb-925e-4a02-b6aa-a8e90c5ad93c" />
+<img width="1283" height="882" alt="Screenshot 2026-02-08 at 17 29 09" src="https://github.com/user-attachments/assets/89147de3-bb4d-4b5b-9f0c-a6ef510b99a5" />
 
 
 ## Using Docker
