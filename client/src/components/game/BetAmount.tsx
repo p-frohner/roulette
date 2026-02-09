@@ -1,4 +1,4 @@
-import { Box, Button, Stack, Typography } from "@mui/material";
+import { Button, Stack, Typography } from "@mui/material";
 import { formatCents } from "../../utils/format";
 
 type Props = {
@@ -6,25 +6,26 @@ type Props = {
 	selectedChip: number;
 	onSelectChip: (amount: number) => void;
 	disabled: boolean;
+	horizontal?: boolean;
 };
 
 const CHIP_VALUES = [100, 500, 1000, 2500, 5000];
 
-export const BetControls = ({ balance, selectedChip, onSelectChip, disabled }: Props) => {
+export const BetAmount = ({ balance, selectedChip, onSelectChip, disabled, horizontal }: Props) => {
 	return (
-		<Stack direction="column" alignItems="flex-end">
+		<Stack alignItems="center">
 			{/* Balance */}
-			<Box display="flex" flex={0} mb={2} alignItems="center">
-				<Typography variant="body2" color="text.secondary" mr={2}>
+			<Stack direction="row" spacing={1} alignItems="center" mb={1}>
+				<Typography variant="body2" color="text.secondary">
 					Balance
 				</Typography>
 				<Typography variant="h6" fontWeight={700} color="secondary.main">
 					{formatCents(balance)}
 				</Typography>
-			</Box>
+			</Stack>
 
 			{/* Chip selector */}
-			<Box display="flex" gap={1} flexWrap="wrap" mb={2}>
+			<Stack direction={horizontal ? "row" : "column"} spacing={1} flexWrap="wrap" justifyContent="center">
 				{CHIP_VALUES.map((value) => (
 					<Button
 						key={value}
@@ -48,7 +49,7 @@ export const BetControls = ({ balance, selectedChip, onSelectChip, disabled }: P
 						{formatCents(value)}
 					</Button>
 				))}
-			</Box>
+			</Stack>
 		</Stack>
 	);
 };

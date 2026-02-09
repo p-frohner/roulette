@@ -13,9 +13,15 @@ import {
 	interpolateAnimation,
 } from "./rouletteAnimation";
 
+const BETTING_DURATION = 20;
+const COUNTDOWN_RADIUS = 30;
+const COUNTDOWN_CIRCUMFERENCE = 2 * Math.PI * COUNTDOWN_RADIUS;
+
 interface Props {
 	gamePhase: GamePhase;
 	winningNumber: number | null;
+	countdown: number;
+	connected: boolean;
 	onSettle?: () => void;
 }
 
@@ -79,7 +85,7 @@ const WheelContainer = styled(Box)({
 	},
 });
 
-export const RouletteWheel = ({ gamePhase, winningNumber, onSettle }: Props) => {
+export const RouletteWheel = ({ gamePhase, winningNumber, countdown, connected, onSettle }: Props) => {
 	const [settled, setSettled] = useState(false);
 
 	// Refs for direct DOM manipulation (60fps without re-renders)
@@ -373,7 +379,6 @@ export const RouletteWheel = ({ gamePhase, winningNumber, onSettle }: Props) => 
 						opacity={0.6}
 					/>
 					<circle cx={CX} cy={CY} r={HUB_INNER_RADIUS} fill="#111" stroke="#555" strokeWidth={1} />
-					<circle cx={CX} cy={CY} r={4} fill="#888" />
 				</g>
 
 				{/* Ball — in static SVG space, outside the rotating group */}
@@ -387,6 +392,91 @@ export const RouletteWheel = ({ gamePhase, winningNumber, onSettle }: Props) => 
 					strokeWidth={0.5}
 					opacity={0}
 				/>
+
+				{/* Game status — static overlay in wheel center */}
+				{!connected && (
+					<text
+						x={CX}
+						y={CY}
+						textAnchor="middle"
+						dominantBaseline="central"
+						fill="rgba(255,255,255,0.5)"
+						fontSize="12"
+					>
+						Connecting...
+					</text>
+				)}
+
+				{connected && gamePhase === "BETTING" && (
+					<>
+						{/* Background track */}
+						<circle
+							cx={CX}
+							cy={CY}
+							r={COUNTDOWN_RADIUS}
+							fill="none"
+							stroke="rgba(255,255,255,0.1)"
+							strokeWidth={4}
+						/>
+						{/* Progress arc */}
+						<circle
+							cx={CX}
+							cy={CY}
+							r={COUNTDOWN_RADIUS}
+							fill="none"
+							stroke={countdown <= 5 ? "#d32f2f" : "#afb3b0"}
+							strokeWidth={4}
+							strokeDasharray={COUNTDOWN_CIRCUMFERENCE}
+							strokeDashoffset={COUNTDOWN_CIRCUMFERENCE * (1 - countdown / BETTING_DURATION)}
+							strokeLinecap="round"
+							transform={`rotate(-90 ${CX} ${CY})`}
+						/>
+						<text
+							x={CX}
+							y={CY}
+							textAnchor="middle"
+							dominantBaseline="central"
+							fill="rgba(255,255,255,0.7)"
+							fontSize="16"
+							fontWeight="700"
+						>
+							{Math.round(countdown)}s
+						</text>
+					</>
+				)}
+
+				{connected &&
+					gamePhase === "RESULT" &&
+					settled &&
+					winningNumber !== null && (
+						<>
+							<circle
+								cx={CX}
+								cy={CY}
+								r={24}
+								fill={
+									getNumberColor(winningNumber) === "green"
+										? "#2E7D32"
+										: getNumberColor(winningNumber) === "red"
+											? "#C62828"
+											: "#212121"
+								}
+								stroke="rgba(255,255,255,0.3)"
+								strokeWidth={1}
+							/>
+							<text
+								x={CX}
+								y={CY}
+								textAnchor="middle"
+								dominantBaseline="central"
+								fill="#fff"
+								fontSize="20"
+								fontWeight="700"
+							>
+								{winningNumber}
+							</text>
+						</>
+					)}
 			</svg>
 		</WheelContainer>
 	);

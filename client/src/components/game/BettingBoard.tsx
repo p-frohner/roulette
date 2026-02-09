@@ -7,6 +7,7 @@ type Props = {
 	disabled: boolean;
 	winningNumber: number | null;
 	showResult: boolean;
+	vertical?: boolean;
 };
 
 const Cell = styled("button", {
@@ -63,14 +64,24 @@ const OutsideBet = styled("button", {
 	}),
 );
 
-// Numbers 1-36 in 12 columns x 3 rows (standard roulette table layout)
-const GRID_NUMBERS: number[][] = [];
+// Horizontal: 12 columns x 3 rows (standard roulette table layout)
+const H_GRID: number[][] = [];
 for (let row = 0; row < 3; row++) {
 	const rowNumbers: number[] = [];
 	for (let col = 0; col < 12; col++) {
 		rowNumbers.push(col * 3 + row + 1);
 	}
-	GRID_NUMBERS.push(rowNumbers);
+	H_GRID.push(rowNumbers);
+}
+
+// Vertical: 3 columns x 12 rows (mobile portrait)
+const V_GRID: number[][] = [];
+for (let row = 0; row < 12; row++) {
+	const rowNumbers: number[] = [];
+	for (let col = 0; col < 3; col++) {
+		rowNumbers.push(row * 3 + col + 1);
+	}
+	V_GRID.push(rowNumbers);
 }
 
 const isWinnerOutside = (
@@ -99,7 +110,8 @@ const isWinnerOutside = (
 	}
 };
 
-export const BettingBoard = ({ onSelectBet, disabled, showResult, winningNumber }: Props) => {
+export const BettingBoard = ({ onSelectBet, disabled, showResult, winningNumber, vertical }: Props) => {
+	const grid = vertical ? V_GRID : H_GRID;
 	const handleClick = (betType: BetType, betValue: string) => {
 		if (!disabled) {
 			onSelectBet(betType, betValue);
@@ -108,11 +120,11 @@ export const BettingBoard = ({ onSelectBet, disabled, showResult, winningNumber 
 
 	return (
 		<Box>
-			{/* Number grid: 3 rows, zero spanning left column */}
+			{/* Number grid */}
 			<Box
 				display="grid"
-				gridTemplateColumns="auto repeat(12, 1fr)"
-				gridTemplateRows="repeat(3, 1fr)"
+				gridTemplateColumns={vertical ? "repeat(3, 1fr)" : "auto repeat(12, 1fr)"}
+				gridTemplateRows={vertical ? undefined : "repeat(3, 1fr)"}
 				gap={0.5}
 				mb={1}
 			>
@@ -121,11 +133,15 @@ export const BettingBoard = ({ onSelectBet, disabled, showResult, winningNumber 
 					isWinner={showResult && winningNumber === 0}
 					disabled={disabled}
 					onClick={() => handleClick("straight", "0")}
-					style={{ gridRow: "1 / 4", fontSize: "1.2rem", width: 70 }}
+					style={
+						vertical
+							? { gridColumn: "1 / 4", fontSize: "1.2rem" }
+							: { gridRow: "1 / 4", fontSize: "1.2rem", width: 70 }
+					}
 				>
 					0
 				</Cell>
-				{GRID_NUMBERS.map((row) =>
+				{grid.map((row) =>
 					row.map((n) => (
 						<Cell
 							key={n}
