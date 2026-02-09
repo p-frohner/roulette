@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: game-of-roulette-api
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    repo: https://github.com/p-frohner/roulette
+    branch: main
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ALLOWED_ORIGINS
+        value: https://game-of-roulette.vercel.app # Update after first Vercel deploy
