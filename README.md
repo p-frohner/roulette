@@ -2,7 +2,7 @@
 
 Demo:
 
-https://roulette-six-rho.vercel.app/
+[Let's play!](https://game-of-roulette.vercel.app)
 
 The server stops after 15 mins of inactivity, needs 30-60 secs to spin up on a cold start.
 
