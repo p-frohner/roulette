@@ -1,5 +1,8 @@
 # Game Of Roulette
 
+<img width="1283" height="882" alt="Screenshot 2026-02-08 at 17 29 09" src="https://github.com/user-attachments/assets/89147de3-bb4d-4b5b-9f0c-a6ef510b99a5" />
+
+
 ## Using Docker
 The easiest way to get started. This handles the Database and the Go server together. From the root directory:
 
