@@ -1,6 +1,10 @@
 # Game Of Roulette
 
-<img width="1283" height="882" alt="Screenshot 2026-02-08 at 17 29 09" src="https://github.com/user-attachments/assets/89147de3-bb4d-4b5b-9f0c-a6ef510b99a5" />
+Demo:
+
+https://roulette-six-rho.vercel.app/
+
+The server stops after 15 mins of inactivity, needs 30-60 secs to spin up on a cold start.
 
 
 ## Using Docker
@@ -18,3 +22,8 @@ The project is structured as a monorepo. To learn more about the specific setup,
 [Client README.MD](client/README.md)
 
 
+## TODO
+ - Make it acceptable for mobile
+ - Improve sad animation of ball landing on the winning number
+ - Look into "Provably Fair"
+ - UI improvements, display bets, history
