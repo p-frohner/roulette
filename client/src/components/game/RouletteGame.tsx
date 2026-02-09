@@ -1,6 +1,7 @@
 import { Box, Paper, Stack } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouletteWebSocket } from "../../hooks/useRouletteWebSocket";
+import { useRouletteStore } from "../../stores/rouletteStore";
 import type { BetType } from "../../types/game";
 import { ActivityLog } from "./ActivityLog";
 import { BetControls } from "./BetControls";
@@ -11,7 +12,8 @@ import { PlayerList } from "./PlayerList";
 import { RouletteWheel } from "./RouletteWheel";
 
 export const RouletteGame = () => {
-	const [playerName, setPlayerName] = useState<string | null>(null);
+	const playerName = useRouletteStore((s) => s.playerName);
+	const setPlayerName = useRouletteStore((s) => s.setPlayerName);
 	const {
 		connected,
 		userId,
@@ -24,19 +26,12 @@ export const RouletteGame = () => {
 		players,
 		placeBet,
 		applyResult,
-	} = useRouletteWebSocket(playerName);
+	} = useRouletteWebSocket();
 
 	const [selectedChip, setSelectedChip] = useState(100);
 	const [wheelSettled, setWheelSettled] = useState(false);
 	const sawSpinningRef = useRef(false);
 
-	// Check localStorage on mount for saved player name
-	useEffect(() => {
-		const savedName = localStorage.getItem("gamePlayerName");
-		if (savedName) {
-			setPlayerName(savedName);
-		}
-	}, []);
 	const bettingDisabled = !connected || gamePhase !== "BETTING";
 
 	const handleSelectBet = useCallback(

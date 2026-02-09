@@ -1,4 +1,5 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
+import { formatCents } from "../../utils/format";
 
 type Props = {
 	balance: number;
@@ -8,8 +9,6 @@ type Props = {
 };
 
 const CHIP_VALUES = [100, 500, 1000, 2500, 5000];
-
-const formatCents = (cents: number): string => `$${(cents / 100).toFixed(2)}`;
 
 export const BetControls = ({ balance, selectedChip, onSelectChip, disabled }: Props) => {
 	return (
