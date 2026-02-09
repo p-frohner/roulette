@@ -1,4 +1,4 @@
-import { Box, Chip, CircularProgress, LinearProgress, Typography } from "@mui/material";
+import { Box, Chip, CircularProgress, Typography } from "@mui/material";
 import { getNumberColor } from "../../data/rouletteNumbers";
 import type { GamePhase } from "../../types/game";
 

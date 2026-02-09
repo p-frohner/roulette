@@ -6,10 +6,14 @@ import type {
 	BetType,
 	GamePhase,
 	PlaceBetAction,
+	Player,
 	ResultMessage,
 	ServerMessage,
 } from "../types/game";
 import { showGlobalNotification } from "../utils/notificationHandler";
+
+const USER_ID_KEY = "gameUserId";
+const PLAYER_NAME_KEY = "gamePlayerName";
 
 type PendingBet = {
 	betType: BetType;
@@ -29,19 +33,31 @@ type GameState = {
 	lastBetResponse: BetAcceptedMessage | BetRejectedMessage | null;
 	pendingBets: PendingBet[];
 	activityLog: ActivityLogEntry[];
+	players: Player[];
 };
 
 type Action =
 	| { type: "connected" }
 	| { type: "disconnected" }
-	| { type: "welcome"; userId: string; balance: number; playerName: string }
+	| { type: "welcome"; userId: string; balance: number; playerName: string; players?: Player[] }
 	| { type: "game_state"; phase: GamePhase; winningNumber: number | null; countdown?: number }
 	| { type: "countdown"; secondsRemaining: number }
 	| { type: "bet_accepted"; message: BetAcceptedMessage }
 	| { type: "bet_rejected"; message: BetRejectedMessage }
 	| { type: "result"; message: ResultMessage }
 	| { type: "apply_result" }
-	| { type: "bet_placed"; playerName: string; betType: string; betValue: string; amount: number };
+	| {
+			type: "bet_placed";
+			userId?: string;
+			playerName: string;
+			betType: string;
+			betValue: string;
+			amount: number;
+	  }
+	| { type: "player_list"; players: Player[] }
+	| { type: "player_joined"; player: Player }
+	| { type: "player_left"; userId: string }
+	| { type: "player_balance_updated"; userId: string; balance: number };
 
 let logIdCounter = 0;
 const nextLogId = () => `log-${++logIdCounter}`;
@@ -70,6 +86,7 @@ const initialState: GameState = {
 	lastBetResponse: null,
 	pendingBets: [],
 	activityLog: [],
+	players: [],
 };
 
 function reducer(state: GameState, action: Action): GameState {
@@ -81,6 +98,9 @@ function reducer(state: GameState, action: Action): GameState {
 		case "welcome": {
 			const displayName = `${action.playerName}#${action.userId.slice(0, 4)}`;
 			const next = { ...state, userId: action.userId, balance: action.balance };
+			if (action.players) {
+				next.players = action.players;
+			}
 			return addLog(next, `Connected as ${displayName}`, "info");
 		}
 		case "game_state": {
@@ -139,12 +159,40 @@ function reducer(state: GameState, action: Action): GameState {
 			}
 			return next;
 		}
-		case "bet_placed":
+		case "bet_placed": {
+			// If bet is from another player, log it
+			if (action.userId && action.userId !== state.userId) {
+				return addLog(
+					state,
+					`${action.playerName} bet ${formatCents(action.amount)} on ${action.betValue}`,
+					"bet",
+				);
+			}
+			// Own bet - just log it
 			return addLog(
 				state,
 				`${action.playerName} bet ${formatCents(action.amount)} on ${action.betValue}`,
 				"bet",
 			);
+		}
+		case "player_list":
+			return { ...state, players: action.players };
+		case "player_joined":
+			return { ...state, players: [...state.players, action.player] };
+		case "player_left":
+			return {
+				...state,
+				players: state.players.map((p) =>
+					p.user_id === action.userId ? { ...p, connected: false } : p,
+				),
+			};
+		case "player_balance_updated":
+			return {
+				...state,
+				players: state.players.map((p) =>
+					p.user_id === action.userId ? { ...p, balance: action.balance } : p,
+				),
+			};
 	}
 }
 
@@ -155,7 +203,16 @@ const handleServerMessage = (
 ): void => {
 	switch (msg.type) {
 		case "welcome":
-			dispatch({ type: "welcome", userId: msg.user_id, balance: msg.balance, playerName });
+			// Save to localStorage for reconnection
+			localStorage.setItem(USER_ID_KEY, msg.user_id);
+			localStorage.setItem(PLAYER_NAME_KEY, playerName);
+			dispatch({
+				type: "welcome",
+				userId: msg.user_id,
+				balance: msg.balance,
+				playerName,
+				players: msg.players,
+			});
 			break;
 		case "game_state":
 			dispatch({
@@ -181,11 +238,24 @@ const handleServerMessage = (
 		case "bet_placed":
 			dispatch({
 				type: "bet_placed",
+				userId: msg.user_id,
 				playerName: msg.player_name,
 				betType: msg.bet_type,
 				betValue: msg.bet_value,
 				amount: msg.amount,
 			});
+			break;
+		case "player_list":
+			dispatch({ type: "player_list", players: msg.players });
+			break;
+		case "player_joined":
+			dispatch({ type: "player_joined", player: msg.player });
+			break;
+		case "player_left":
+			dispatch({ type: "player_left", userId: msg.user_id });
+			break;
+		case "player_balance_updated":
+			dispatch({ type: "player_balance_updated", userId: msg.user_id, balance: msg.balance });
 			break;
 	}
 };
@@ -220,7 +290,24 @@ export const useRouletteWebSocket = (playerName: string | null) => {
 			ws.onopen = () => {
 				if (!unmounted) {
 					dispatch({ type: "connected" });
-					ws.send(JSON.stringify({ action: "set_name", name: playerName }));
+
+					// Check for saved identity
+					const savedUserId = localStorage.getItem(USER_ID_KEY);
+					const savedName = localStorage.getItem(PLAYER_NAME_KEY);
+
+					if (savedUserId && savedName && savedName === playerName) {
+						// Reconnect with saved identity
+						ws.send(
+							JSON.stringify({
+								action: "reconnect",
+								user_id: savedUserId,
+								name: savedName,
+							}),
+						);
+					} else {
+						// New connection
+						ws.send(JSON.stringify({ action: "set_name", name: playerName }));
+					}
 				}
 			};
 

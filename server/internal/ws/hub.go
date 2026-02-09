@@ -70,6 +70,25 @@ func (h *Hub) Stop() {
 	close(h.done)
 }
 
+// IsUserConnected checks if a user has an active connection.
+func (h *Hub) IsUserConnected(userID string) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	_, ok := h.clientsByUser[userID]
+	return ok
+}
+
+// GetConnectedUserIDs returns a slice of all connected user IDs.
+func (h *Hub) GetConnectedUserIDs() []string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	ids := make([]string, 0, len(h.clientsByUser))
+	for userID := range h.clientsByUser {
+		ids = append(ids, userID)
+	}
+	return ids
+}
+
 func (h *Hub) Run() {
 	for {
 		select {

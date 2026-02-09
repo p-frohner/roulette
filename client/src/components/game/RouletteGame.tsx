@@ -7,24 +7,36 @@ import { BetControls } from "./BetControls";
 import { BettingBoard } from "./BettingBoard";
 import { GameStatus } from "./GameStatus";
 import { NameDialog } from "./NameDialog";
+import { PlayerList } from "./PlayerList";
 import { RouletteWheel } from "./RouletteWheel";
 
 export const RouletteGame = () => {
 	const [playerName, setPlayerName] = useState<string | null>(null);
 	const {
 		connected,
+		userId,
 		balance,
 		gamePhase,
 		countdown,
 		winningNumber,
 		pendingResult,
 		activityLog,
+		players,
 		placeBet,
 		applyResult,
 	} = useRouletteWebSocket(playerName);
+
 	const [selectedChip, setSelectedChip] = useState(100);
 	const [wheelSettled, setWheelSettled] = useState(false);
 	const sawSpinningRef = useRef(false);
+
+	// Check localStorage on mount for saved player name
+	useEffect(() => {
+		const savedName = localStorage.getItem("gamePlayerName");
+		if (savedName) {
+			setPlayerName(savedName);
+		}
+	}, []);
 	const bettingDisabled = !connected || gamePhase !== "BETTING";
 
 	const handleSelectBet = useCallback(
@@ -116,9 +128,12 @@ export const RouletteGame = () => {
 						/>
 					</Box>
 				</Stack>
-				<Box flex={0.5} display="flex" flexDirection="column">
+				<Box flex={0.5} display="flex" flexDirection="column" gap={2}>
 					<Box flex={1} minHeight={0} overflow="hidden">
 						<ActivityLog activityLog={activityLog} />
+					</Box>
+					<Box flex={0.6} minHeight={0}>
+						<PlayerList players={players} currentUserId={userId} />
 					</Box>
 				</Box>
 			</Stack>

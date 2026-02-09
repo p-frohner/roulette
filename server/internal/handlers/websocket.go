@@ -3,11 +3,9 @@ package handlers
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"log/slog"
 	"net/http"
 
-	"roulette/internal/messages"
 	"roulette/internal/ws"
 
 	"github.com/coder/websocket"
@@ -34,21 +32,6 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	userID := generateUserID()
 
 	client := ws.NewClient(s.Hub, conn, userID)
-	s.Hub.Register(client)
-
-	// Register user with game manager and send welcome message
-	user := s.GameManager.RegisterUser(userID)
-	welcome, err := json.Marshal(messages.WelcomeMessage{
-		Type:    "welcome",
-		UserID:  userID,
-		Balance: user.Balance,
-		History: s.GameManager.History(),
-	})
-	if err != nil {
-		slog.Error("failed to marshal welcome message", "error", err)
-	} else {
-		client.Send <- welcome
-	}
 
 	go client.WritePump()
 	go client.ReadPump()

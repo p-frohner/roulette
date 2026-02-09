@@ -33,13 +33,22 @@ type Payout struct {
 	Winnings int64 `json:"winnings"`
 }
 
+// Player represents a connected player at the table.
+type Player struct {
+	UserID    string `json:"user_id"`
+	Name      string `json:"name"`
+	Balance   int64  `json:"balance"`
+	Connected bool   `json:"connected"`
+}
+
 // --- Server → Client messages ---
 
 type WelcomeMessage struct {
-	Type    string `json:"type"    tstype:"'welcome'"`
-	UserID  string `json:"user_id"`
-	Balance int64  `json:"balance"`
-	History []int  `json:"history"`
+	Type    string   `json:"type"    tstype:"'welcome'"`
+	UserID  string   `json:"user_id"`
+	Balance int64    `json:"balance"`
+	History []int    `json:"history"`
+	Players []Player `json:"players"`
 }
 
 type GameStateMessage struct {
@@ -79,10 +88,32 @@ type ResultMessage struct {
 
 type BetPlacedMessage struct {
 	Type       string  `json:"type"        tstype:"'bet_placed'"`
+	UserID     string  `json:"user_id"`
 	PlayerName string  `json:"player_name"`
 	BetType    BetType `json:"bet_type"`
 	BetValue   string  `json:"bet_value"`
 	Amount     int64   `json:"amount"`
+}
+
+type PlayerListMessage struct {
+	Type    string   `json:"type"    tstype:"'player_list'"`
+	Players []Player `json:"players"`
+}
+
+type PlayerJoinedMessage struct {
+	Type   string `json:"type"   tstype:"'player_joined'"`
+	Player Player `json:"player"`
+}
+
+type PlayerLeftMessage struct {
+	Type   string `json:"type"   tstype:"'player_left'"`
+	UserID string `json:"user_id"`
+}
+
+type PlayerBalanceUpdatedMessage struct {
+	Type    string `json:"type"    tstype:"'player_balance_updated'"`
+	UserID  string `json:"user_id"`
+	Balance int64  `json:"balance"`
 }
 
 // --- Client → Server messages ---
@@ -96,5 +127,11 @@ type PlaceBetAction struct {
 
 type SetNameAction struct {
 	Action string `json:"action" tstype:"'set_name'"`
+	Name   string `json:"name"`
+}
+
+type ReconnectAction struct {
+	Action string `json:"action" tstype:"'reconnect'"`
+	UserID string `json:"user_id"`
 	Name   string `json:"name"`
 }

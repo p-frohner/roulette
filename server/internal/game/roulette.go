@@ -51,10 +51,11 @@ var RedNumbers = map[int]bool{
 
 // User represents a connected player
 type User struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Balance int64  `json:"balance"`
-	mu      sync.Mutex
+	ID             string     `json:"id"`
+	Name           string     `json:"name"`
+	Balance        int64      `json:"balance"`
+	LastDisconnect *time.Time `json:"last_disconnect,omitempty"` // nil when connected, set when disconnected
+	mu             sync.Mutex
 }
 
 // GameSession represents a single round of roulette

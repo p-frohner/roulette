@@ -7,10 +7,15 @@ export type ServerMessage =
   | BetAcceptedMessage
   | BetRejectedMessage
   | ResultMessage
-  | BetPlacedMessage;
+  | BetPlacedMessage
+  | PlayerListMessage
+  | PlayerJoinedMessage
+  | PlayerLeftMessage
+  | PlayerBalanceUpdatedMessage;
 export type ClientMessage =
   | PlaceBetAction
-  | SetNameAction;
+  | SetNameAction
+  | ReconnectAction;
 
 //////////
 // source: messages.go
@@ -46,11 +51,21 @@ export interface Payout {
   bet: Bet;
   winnings: number /* int64 */;
 }
+/**
+ * Player represents a connected player at the table.
+ */
+export interface Player {
+  user_id: string;
+  name: string;
+  balance: number /* int64 */;
+  connected: boolean;
+}
 export interface WelcomeMessage {
   type: 'welcome';
   user_id: string;
   balance: number /* int64 */;
   history: number /* int */[];
+  players: Player[];
 }
 export interface GameStateMessage {
   type: 'game_state';
@@ -84,10 +99,28 @@ export interface ResultMessage {
 }
 export interface BetPlacedMessage {
   type: 'bet_placed';
+  user_id: string;
   player_name: string;
   bet_type: BetType;
   bet_value: string;
   amount: number /* int64 */;
+}
+export interface PlayerListMessage {
+  type: 'player_list';
+  players: Player[];
+}
+export interface PlayerJoinedMessage {
+  type: 'player_joined';
+  player: Player;
+}
+export interface PlayerLeftMessage {
+  type: 'player_left';
+  user_id: string;
+}
+export interface PlayerBalanceUpdatedMessage {
+  type: 'player_balance_updated';
+  user_id: string;
+  balance: number /* int64 */;
 }
 export interface PlaceBetAction {
   action: 'place_bet';
@@ -97,5 +130,10 @@ export interface PlaceBetAction {
 }
 export interface SetNameAction {
   action: 'set_name';
+  name: string;
+}
+export interface ReconnectAction {
+  action: 'reconnect';
+  user_id: string;
   name: string;
 }

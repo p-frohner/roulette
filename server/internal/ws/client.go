@@ -30,6 +30,7 @@ type ClientMessage struct {
 	BetValue string `json:"bet_value"`
 	Amount   int64  `json:"amount"`
 	Name     string `json:"name"`
+	UserID   string `json:"user_id"`
 }
 
 func NewClient(hub *Hub, conn *websocket.Conn, userID string) *Client {
@@ -44,7 +45,8 @@ func NewClient(hub *Hub, conn *websocket.Conn, userID string) *Client {
 func (c *Client) ReadPump() {
 	defer func() {
 		if c.Hub.gameManager != nil {
-			c.Hub.gameManager.UnregisterUser(c.UserID)
+			c.Hub.gameManager.NotifyPlayerLeft(c.UserID)
+			c.Hub.gameManager.MarkUserDisconnected(c.UserID)
 		}
 		c.Hub.Unregister(c)
 		c.conn.CloseNow()
@@ -69,11 +71,126 @@ func (c *Client) ReadPump() {
 		}
 
 		switch msg.Action {
+		case "reconnect":
+			if c.Hub.gameManager == nil {
+				continue
+			}
+
+			// Try to restore existing user
+			user := c.Hub.gameManager.GetUser(msg.UserID)
+			if user != nil {
+				// User exists (reconnection), restore their identity
+				slog.Info("reconnecting existing user",
+					"user_id", msg.UserID,
+					"name", msg.Name,
+					"balance", user.Balance)
+				c.UserID = msg.UserID
+				c.Hub.gameManager.SetUserName(msg.UserID, msg.Name)
+				c.Hub.gameManager.MarkUserReconnected(msg.UserID)
+			} else {
+				// User not found (server restart), register new user
+				slog.Info("old user not found, using new userID",
+					"old_user_id", msg.UserID,
+					"new_user_id", c.UserID,
+					"name", msg.Name)
+				c.Hub.gameManager.RegisterUser(c.UserID)
+				c.Hub.gameManager.SetUserName(c.UserID, msg.Name)
+			}
+
+			// Register in Hub immediately (atomic with game manager registration)
+			c.Hub.Register(c)
+
+			// Send welcome with player list
+			user = c.Hub.gameManager.GetUser(c.UserID)
+			if user == nil {
+				slog.Error("user not found after reconnect setup",
+					"user_id", c.UserID,
+					"client_sent_user_id", msg.UserID)
+				continue
+			}
+			players := c.Hub.gameManager.GetAllPlayers()
+			welcome, err := json.Marshal(messages.WelcomeMessage{
+				Type:    "welcome",
+				UserID:  c.UserID,
+				Balance: user.Balance,
+				History: c.Hub.gameManager.History(),
+				Players: players,
+			})
+			if err != nil {
+				slog.Error("failed to marshal welcome message", "error", err)
+				continue
+			}
+			c.Send <- welcome
+
+			// Send current game state immediately after welcome
+			currentState, winningNum, countdown := c.Hub.gameManager.GetCurrentGameState()
+			gameState := messages.GameStateMessage{
+				Type:          "game_state",
+				State:         currentState,
+				WinningNumber: winningNum,
+				Countdown:     countdown,
+				History:       c.Hub.gameManager.History(),
+			}
+			stateData, err := json.Marshal(gameState)
+			if err != nil {
+				slog.Error("failed to marshal game state", "error", err)
+			} else {
+				c.Send <- stateData
+			}
+
+			// Notify others of connection
+			c.Hub.gameManager.NotifyPlayerJoined(c.UserID)
+
 		case "set_name":
 			if c.Hub.gameManager == nil {
 				continue
 			}
+
+			// Register user in GameManager
+			c.Hub.gameManager.RegisterUser(c.UserID)
 			c.Hub.gameManager.SetUserName(c.UserID, msg.Name)
+
+			// Register in Hub immediately (atomic registration)
+			c.Hub.Register(c)
+
+			// Send welcome message
+			user := c.Hub.gameManager.GetUser(c.UserID)
+			if user == nil {
+				slog.Error("user not found after set_name", "user_id", c.UserID)
+				continue
+			}
+			players := c.Hub.gameManager.GetAllPlayers()
+			welcome, err := json.Marshal(messages.WelcomeMessage{
+				Type:    "welcome",
+				UserID:  c.UserID,
+				Balance: user.Balance,
+				History: c.Hub.gameManager.History(),
+				Players: players,
+			})
+			if err != nil {
+				slog.Error("failed to marshal welcome message", "error", err)
+				continue
+			}
+			c.Send <- welcome
+
+			// Send current game state immediately
+			currentState, winningNum, countdown := c.Hub.gameManager.GetCurrentGameState()
+			gameState := messages.GameStateMessage{
+				Type:          "game_state",
+				State:         currentState,
+				WinningNumber: winningNum,
+				Countdown:     countdown,
+				History:       c.Hub.gameManager.History(),
+			}
+			stateData, err := json.Marshal(gameState)
+			if err != nil {
+				slog.Error("failed to marshal game state", "error", err)
+			} else {
+				c.Send <- stateData
+			}
+
+			// Notify others (after we're fully synced)
+			c.Hub.gameManager.NotifyPlayerJoined(c.UserID)
 
 		case "place_bet":
 			if c.Hub.gameManager == nil {
@@ -109,6 +226,7 @@ func (c *Client) ReadPump() {
 				playerName := c.Hub.gameManager.GetUserName(c.UserID)
 				broadcast, err := json.Marshal(messages.BetPlacedMessage{
 					Type:       "bet_placed",
+					UserID:     c.UserID,
 					PlayerName: playerName,
 					BetType:    messages.BetType(msg.BetType),
 					BetValue:   msg.BetValue,

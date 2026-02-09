@@ -34,27 +34,47 @@ type BroadcastFunc func([]byte)
 // SendToUserFunc sends a message to a specific user by ID.
 type SendToUserFunc func(string, []byte)
 
+// ConnectionChecker checks if a user has an active connection.
+type ConnectionChecker interface {
+	IsUserConnected(userID string) bool
+}
+
 // Manager orchestrates the roulette game loop and manages users.
 type Manager struct {
-	users      map[string]*User
-	usersMu    sync.RWMutex
-	session    *GameSession
-	sessionMu  sync.RWMutex
-	history    []int // last 10 winning numbers, most recent first
-	broadcast  BroadcastFunc
-	sendToUser SendToUserFunc
-	stopCh     chan struct{}
+	users            map[string]*User
+	usersMu          sync.RWMutex
+	session          *GameSession
+	sessionMu        sync.RWMutex
+	currentCountdown int   // Track countdown for mid-join sync
+	history          []int // last 10 winning numbers, most recent first
+	broadcast        BroadcastFunc
+	sendToUser       SendToUserFunc
+	connChecker      ConnectionChecker
+	stopCh           chan struct{}
+	cleanupTicker    *time.Ticker
+	cleanupStopCh    chan struct{}
 }
 
 // NewManager creates a new game Manager with the given broadcast functions.
 func NewManager(broadcastAll BroadcastFunc, sendToUser SendToUserFunc) *Manager {
-	return &Manager{
-		users:      make(map[string]*User),
-		session:    &GameSession{State: StateBetting},
-		broadcast:  broadcastAll,
-		sendToUser: sendToUser,
-		stopCh:     make(chan struct{}),
+	m := &Manager{
+		users:         make(map[string]*User),
+		session:       &GameSession{State: StateBetting},
+		broadcast:     broadcastAll,
+		sendToUser:    sendToUser,
+		stopCh:        make(chan struct{}),
+		cleanupStopCh: make(chan struct{}),
 	}
+
+	// Start cleanup goroutine
+	go m.runCleanup()
+
+	return m
+}
+
+// SetConnectionChecker sets the connection checker (typically the Hub).
+func (m *Manager) SetConnectionChecker(cc ConnectionChecker) {
+	m.connChecker = cc
 }
 
 // RegisterUser creates a new user with the starting balance.
@@ -75,6 +95,30 @@ func (m *Manager) UnregisterUser(userID string) {
 	m.usersMu.Lock()
 	defer m.usersMu.Unlock()
 	delete(m.users, userID)
+}
+
+// MarkUserDisconnected marks a user as disconnected without removing them.
+// This allows them to reconnect within the grace period.
+func (m *Manager) MarkUserDisconnected(userID string) {
+	user := m.GetUser(userID)
+	if user == nil {
+		return
+	}
+	now := time.Now()
+	user.mu.Lock()
+	user.LastDisconnect = &now
+	user.mu.Unlock()
+}
+
+// MarkUserReconnected clears the disconnect timestamp when a user reconnects.
+func (m *Manager) MarkUserReconnected(userID string) {
+	user := m.GetUser(userID)
+	if user == nil {
+		return
+	}
+	user.mu.Lock()
+	user.LastDisconnect = nil
+	user.mu.Unlock()
 }
 
 // GetUser returns a user by ID, or nil if not found.
@@ -112,6 +156,139 @@ func (m *Manager) GetUserName(userID string) string {
 	user.mu.Lock()
 	defer user.mu.Unlock()
 	return user.Name
+}
+
+// GetAllPlayers returns a snapshot of all players with their connection status.
+func (m *Manager) GetAllPlayers() []messages.Player {
+	m.usersMu.RLock()
+	defer m.usersMu.RUnlock()
+
+	players := make([]messages.Player, 0, len(m.users))
+	for userID, user := range m.users {
+		user.mu.Lock()
+		name := user.Name
+		balance := user.Balance
+		user.mu.Unlock()
+
+		connected := false
+		if m.connChecker != nil {
+			connected = m.connChecker.IsUserConnected(userID)
+		}
+
+		players = append(players, messages.Player{
+			UserID:    userID,
+			Name:      name,
+			Balance:   balance,
+			Connected: connected,
+		})
+	}
+	return players
+}
+
+// GetCurrentGameState returns the current game state for syncing new players.
+func (m *Manager) GetCurrentGameState() (state messages.GamePhase, winningNumber *int, countdown *int) {
+	m.sessionMu.RLock()
+	defer m.sessionMu.RUnlock()
+
+	switch m.session.State {
+	case StateBetting:
+		state = messages.GamePhaseBetting
+		// Include countdown for BETTING phase if available
+		if m.currentCountdown > 0 {
+			countdown = &m.currentCountdown
+		}
+	case StateSpinning:
+		state = messages.GamePhaseSpinning
+	case StateResult:
+		state = messages.GamePhaseResult
+		if m.session.WinningNumber >= 0 {
+			winningNumber = &m.session.WinningNumber
+		}
+	}
+
+	return state, winningNumber, countdown
+}
+
+// BroadcastPlayerList sends the full player list to all clients.
+func (m *Manager) BroadcastPlayerList() {
+	players := m.GetAllPlayers()
+	msg, err := json.Marshal(messages.PlayerListMessage{
+		Type:    "player_list",
+		Players: players,
+	})
+	if err != nil {
+		slog.Error("failed to marshal player list", "error", err)
+		return
+	}
+	m.broadcast(msg)
+}
+
+// broadcastExcept sends a message to all connected users except the specified one.
+func (m *Manager) broadcastExcept(excludeUserID string, msg []byte) {
+	m.usersMu.RLock()
+	defer m.usersMu.RUnlock()
+
+	for userID := range m.users {
+		if userID != excludeUserID && m.connChecker != nil && m.connChecker.IsUserConnected(userID) {
+			m.sendToUser(userID, msg)
+		}
+	}
+}
+
+// NotifyPlayerJoined broadcasts when a new player connects.
+func (m *Manager) NotifyPlayerJoined(userID string) {
+	user := m.GetUser(userID)
+	if user == nil {
+		return
+	}
+
+	user.mu.Lock()
+	name := user.Name
+	balance := user.Balance
+	user.mu.Unlock()
+
+	msg, err := json.Marshal(messages.PlayerJoinedMessage{
+		Type: "player_joined",
+		Player: messages.Player{
+			UserID:    userID,
+			Name:      name,
+			Balance:   balance,
+			Connected: true,
+		},
+	})
+	if err != nil {
+		slog.Error("failed to marshal player joined", "error", err, "user_id", userID)
+		return
+	}
+	// Broadcast to everyone EXCEPT the joining player
+	m.broadcastExcept(userID, msg)
+}
+
+// NotifyPlayerLeft broadcasts when a player disconnects.
+func (m *Manager) NotifyPlayerLeft(userID string) {
+	msg, err := json.Marshal(messages.PlayerLeftMessage{
+		Type:   "player_left",
+		UserID: userID,
+	})
+	if err != nil {
+		slog.Error("failed to marshal player left", "error", err, "user_id", userID)
+		return
+	}
+	m.broadcast(msg)
+}
+
+// NotifyBalanceUpdated broadcasts when a player's balance changes.
+func (m *Manager) NotifyBalanceUpdated(userID string, balance int64) {
+	msg, err := json.Marshal(messages.PlayerBalanceUpdatedMessage{
+		Type:    "player_balance_updated",
+		UserID:  userID,
+		Balance: balance,
+	})
+	if err != nil {
+		slog.Error("failed to marshal balance update", "error", err, "user_id", userID)
+		return
+	}
+	m.broadcast(msg)
 }
 
 // History returns a copy of the last 10 winning numbers.
@@ -187,15 +364,52 @@ func (m *Manager) RunGameLoop() {
 	}
 }
 
+// runCleanup periodically removes users who have been disconnected for too long.
+func (m *Manager) runCleanup() {
+	const cleanupInterval = 1 * time.Minute
+	const disconnectGracePeriod = 5 * time.Minute
+
+	m.cleanupTicker = time.NewTicker(cleanupInterval)
+	defer m.cleanupTicker.Stop()
+
+	for {
+		select {
+		case <-m.cleanupStopCh:
+			return
+		case <-m.cleanupTicker.C:
+			now := time.Now()
+			m.usersMu.Lock()
+			for userID, user := range m.users {
+				user.mu.Lock()
+				lastDisconnect := user.LastDisconnect
+				user.mu.Unlock()
+
+				if lastDisconnect != nil && now.Sub(*lastDisconnect) > disconnectGracePeriod {
+					slog.Info("cleaning up disconnected user",
+						"user_id", userID,
+						"name", user.Name,
+						"disconnected_for", now.Sub(*lastDisconnect))
+					delete(m.users, userID)
+				}
+			}
+			m.usersMu.Unlock()
+		}
+	}
+}
+
 // Stop shuts down the game loop.
 func (m *Manager) Stop() {
 	close(m.stopCh)
+	if m.cleanupStopCh != nil {
+		close(m.cleanupStopCh)
+	}
 }
 
 func (m *Manager) runBettingPhase() {
 	// Reset session
 	m.sessionMu.Lock()
 	m.session = &GameSession{State: StateBetting}
+	m.currentCountdown = int(BettingDuration.Seconds())
 	m.sessionMu.Unlock()
 
 	// Broadcast betting state
@@ -212,6 +426,9 @@ func (m *Manager) runBettingPhase() {
 		case <-ticker.C:
 		}
 		remaining--
+		m.sessionMu.Lock()
+		m.currentCountdown = remaining
+		m.sessionMu.Unlock()
 		m.broadcastCountdown(messages.GamePhaseBetting, remaining)
 	}
 }
@@ -321,12 +538,16 @@ func (m *Manager) runResultPhase() {
 
 	// Refill any players who hit zero
 	m.usersMu.RLock()
-	for _, user := range m.users {
+	for userID, user := range m.users {
 		user.mu.Lock()
 		if user.Balance == 0 {
 			user.Balance = StartingBalance
+			user.mu.Unlock()
+			// Notify all clients of balance refill
+			m.NotifyBalanceUpdated(userID, StartingBalance)
+		} else {
+			user.mu.Unlock()
 		}
-		user.mu.Unlock()
 	}
 	m.usersMu.RUnlock()
 }

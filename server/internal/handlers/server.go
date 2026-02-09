@@ -23,6 +23,7 @@ func NewServer(allowedOrigins []string) *Server {
 	go hub.Run()
 
 	gm := game.NewManager(hub.BroadcastToAll, hub.SendToUser)
+	gm.SetConnectionChecker(hub)
 	hub.SetGameManager(gm)
 	go gm.RunGameLoop()
 
@@ -61,9 +62,8 @@ func (s *Server) Start(ctx context.Context, addr string) error {
 	srv := &http.Server{
 		Addr:         addr,
 		Handler:      s.Routes(),
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,  // Increased for WebSocket writes
+		IdleTimeout:  120 * time.Second, // Increased for long-lived WebSocket connections
 	}
 
 	errCh := make(chan error, 1)
