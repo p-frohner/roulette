@@ -10,11 +10,11 @@ const formatBalance = (cents: number): string => `$${(cents / 100).toFixed(2)}`;
 
 export const PlayerList = ({ players, currentUserId }: Props) => {
 	return (
-		<Paper sx={{ p: 2, height: "100%", overflow: "auto" }}>
+		<Paper sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
 			<Typography variant="h6" mb={2}>
 				Players ({players.length})
 			</Typography>
-			<Stack spacing={1}>
+			<Stack spacing={1} sx={{ flex: 1, minHeight: 0, overflowY: "auto", "&::-webkit-scrollbar": { width: 4 }, "&::-webkit-scrollbar-thumb": { backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 2 } }}>
 				{players.map((player) => {
 					const isYou = player.user_id === currentUserId;
 					return (

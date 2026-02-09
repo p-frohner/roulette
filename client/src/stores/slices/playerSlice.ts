@@ -10,12 +10,11 @@ export interface PlayerSlice {
 	updatePlayerBalance: (userId: string, balance: number) => void;
 }
 
-export const createPlayerSlice: StateCreator<
-	RouletteStore,
-	[],
-	[],
-	PlayerSlice
-> = (set, get, _api) => ({
+export const createPlayerSlice: StateCreator<RouletteStore, [], [], PlayerSlice> = (
+	set,
+	get,
+	_api,
+) => ({
 	players: [],
 
 	setPlayers: (players) => {
@@ -24,24 +23,26 @@ export const createPlayerSlice: StateCreator<
 
 	addPlayer: (player) => {
 		const { players } = get();
-		set({ players: [...players, player] });
+		// When someone disconnects, and reconnects before we clear the user
+		const exists = players.some((p) => p.user_id === player.user_id);
+		if (exists) {
+			set({ players: players.map((p) => (p.user_id === player.user_id ? player : p)) });
+		} else {
+			set({ players: [...players, player] });
+		}
 	},
 
 	markPlayerDisconnected: (userId) => {
 		const { players } = get();
 		set({
-			players: players.map((p: Player) =>
-				p.user_id === userId ? { ...p, connected: false } : p,
-			),
+			players: players.map((p: Player) => (p.user_id === userId ? { ...p, connected: false } : p)),
 		});
 	},
 
 	updatePlayerBalance: (userId, balance) => {
 		const { players } = get();
 		set({
-			players: players.map((p: Player) =>
-				p.user_id === userId ? { ...p, balance } : p,
-			),
+			players: players.map((p: Player) => (p.user_id === userId ? { ...p, balance } : p)),
 		});
 	},
 });

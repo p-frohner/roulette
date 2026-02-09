@@ -536,6 +536,10 @@ func (m *Manager) runResultPhase() {
 	case <-time.After(ResultDuration):
 	}
 
+	// Sync all player balances in the player list after payouts
+	// (delayed until after ResultDuration so the wheel animation finishes first)
+	m.BroadcastPlayerList()
+
 	// Refill any players who hit zero
 	m.usersMu.RLock()
 	for userID, user := range m.users {

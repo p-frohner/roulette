@@ -237,6 +237,9 @@ func (c *Client) ReadPump() {
 					continue
 				}
 				c.Hub.BroadcastToAll(broadcast)
+
+				// Notify all clients of the bettor's updated balance
+				c.Hub.gameManager.NotifyBalanceUpdated(c.UserID, newBalance)
 			}
 		}
 	}
