@@ -10,4 +10,4 @@ services:
     healthCheckPath: /health
     envVars:
       - key: ALLOWED_ORIGINS
-        value: https://https://roulette-six-rho.vercel.app
+        value: https://roulette-six-rho.vercel.app
