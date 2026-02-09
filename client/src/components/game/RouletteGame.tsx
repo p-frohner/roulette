@@ -99,7 +99,7 @@ export const RouletteGame = () => {
 			<Paper
 				sx={{
 					p: 2,
-					height: "100vh",
+					height: "100dvh",
 					boxSizing: "border-box",
 					overflow: "hidden",
 					display: "flex",
