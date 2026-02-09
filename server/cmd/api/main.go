@@ -19,7 +19,7 @@ func main() {
 
 	server := handlers.NewServer(cfg.AllowedOrigins)
 
-	slog.Info("Roulette Server starting", "port", cfg.Port)
+	slog.Info("Roulette Server starting", "port", cfg.Port, "allowedOrigins", cfg.AllowedOrigins)
 	if err := server.Start(ctx, ":"+cfg.Port); err != nil {
 		slog.Error("Server failed", "error", err)
 		os.Exit(1)
