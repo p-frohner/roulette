@@ -85,7 +85,13 @@ const WheelContainer = styled(Box)({
 	},
 });
 
-export const RouletteWheel = ({ gamePhase, winningNumber, countdown, connected, onSettle }: Props) => {
+export const RouletteWheel = ({
+	gamePhase,
+	winningNumber,
+	countdown,
+	connected,
+	onSettle,
+}: Props) => {
 	const [settled, setSettled] = useState(false);
 
 	// Refs for direct DOM manipulation (60fps without re-renders)
@@ -395,16 +401,19 @@ export const RouletteWheel = ({ gamePhase, winningNumber, countdown, connected, 
 
 				{/* Game status — static overlay in wheel center */}
 				{!connected && (
-					<text
-						x={CX}
-						y={CY}
-						textAnchor="middle"
-						dominantBaseline="central"
-						fill="rgba(255,255,255,0.5)"
-						fontSize="12"
-					>
-						Connecting...
-					</text>
+					<>
+						<circle cx={CX} cy={CY} r={40} fill="rgba(0,0,0,0.6)" />
+						<text
+							x={CX}
+							y={CY}
+							textAnchor="middle"
+							dominantBaseline="central"
+							fill="#FFF"
+							fontSize="12"
+						>
+							Connecting...
+						</text>
+					</>
 				)}
 
 				{connected && gamePhase === "BETTING" && (
@@ -445,38 +454,35 @@ export const RouletteWheel = ({ gamePhase, winningNumber, countdown, connected, 
 					</>
 				)}
 
-				{connected &&
-					gamePhase === "RESULT" &&
-					settled &&
-					winningNumber !== null && (
-						<>
-							<circle
-								cx={CX}
-								cy={CY}
-								r={24}
-								fill={
-									getNumberColor(winningNumber) === "green"
-										? "#2E7D32"
-										: getNumberColor(winningNumber) === "red"
-											? "#C62828"
-											: "#212121"
-								}
-								stroke="rgba(255,255,255,0.3)"
-								strokeWidth={1}
-							/>
-							<text
-								x={CX}
-								y={CY}
-								textAnchor="middle"
-								dominantBaseline="central"
-								fill="#fff"
-								fontSize="20"
-								fontWeight="700"
-							>
-								{winningNumber}
-							</text>
-						</>
-					)}
+				{connected && gamePhase === "RESULT" && settled && winningNumber !== null && (
+					<>
+						<circle
+							cx={CX}
+							cy={CY}
+							r={24}
+							fill={
+								getNumberColor(winningNumber) === "green"
+									? "#2E7D32"
+									: getNumberColor(winningNumber) === "red"
+										? "#C62828"
+										: "#212121"
+							}
+							stroke="rgba(255,255,255,0.3)"
+							strokeWidth={1}
+						/>
+						<text
+							x={CX}
+							y={CY}
+							textAnchor="middle"
+							dominantBaseline="central"
+							fill="#fff"
+							fontSize="20"
+							fontWeight="700"
+						>
+							{winningNumber}
+						</text>
+					</>
+				)}
 			</svg>
 		</WheelContainer>
 	);

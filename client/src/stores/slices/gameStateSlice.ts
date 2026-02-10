@@ -9,22 +9,17 @@ export interface GameStateSlice {
 	winningNumber: number | null;
 	lastResult: ResultMessage | null;
 	pendingResult: ResultMessage | null;
-	handleGameState: (
-		phase: GamePhase,
-		winningNumber: number | null,
-		countdown?: number,
-	) => void;
+	handleGameState: (phase: GamePhase, winningNumber: number | null, countdown?: number) => void;
 	setCountdown: (secondsRemaining: number) => void;
 	handleResult: (message: ResultMessage) => void;
 	applyResult: () => void;
 }
 
-export const createGameStateSlice: StateCreator<
-	RouletteStore,
-	[],
-	[],
-	GameStateSlice
-> = (set, get, _api) => ({
+export const createGameStateSlice: StateCreator<RouletteStore, [], [], GameStateSlice> = (
+	set,
+	get,
+	_api,
+) => ({
 	gamePhase: "BETTING",
 	countdown: 0,
 	winningNumber: null,
@@ -77,7 +72,6 @@ export const createGameStateSlice: StateCreator<
 		}
 
 		const msg = pendingResult;
-
 		set({
 			balance: msg.balance,
 			pendingResult: null,

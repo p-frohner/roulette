@@ -45,8 +45,7 @@ type Manager struct {
 	usersMu          sync.RWMutex
 	session          *GameSession
 	sessionMu        sync.RWMutex
-	currentCountdown int   // Track countdown for mid-join sync
-	history          []int // last 10 winning numbers, most recent first
+	currentCountdown int // Track countdown for mid-join sync
 	broadcast        BroadcastFunc
 	sendToUser       SendToUserFunc
 	connChecker      ConnectionChecker
@@ -291,15 +290,6 @@ func (m *Manager) NotifyBalanceUpdated(userID string, balance int64) {
 	m.broadcast(msg)
 }
 
-// History returns a copy of the last 10 winning numbers.
-func (m *Manager) History() []int {
-	m.sessionMu.RLock()
-	defer m.sessionMu.RUnlock()
-	h := make([]int, len(m.history))
-	copy(h, m.history)
-	return h
-}
-
 // PlaceBet validates and places a bet for a user.
 // Returns the user's new balance and an error if the bet was rejected.
 func (m *Manager) PlaceBet(userID, betType, betValue string, amount int64) (int64, error) {
@@ -367,7 +357,7 @@ func (m *Manager) RunGameLoop() {
 // runCleanup periodically removes users who have been disconnected for too long.
 func (m *Manager) runCleanup() {
 	const cleanupInterval = 1 * time.Minute
-	const disconnectGracePeriod = 5 * time.Minute
+	const disconnectGracePeriod = 1 * time.Hour
 
 	m.cleanupTicker = time.NewTicker(cleanupInterval)
 	defer m.cleanupTicker.Stop()
@@ -466,12 +456,6 @@ func (m *Manager) runResultPhase() {
 	m.session.State = StateResult
 	winningNumber := m.session.WinningNumber
 
-	// Record winning number in history (most recent first, max 10)
-	m.history = append([]int{winningNumber}, m.history...)
-	if len(m.history) > 10 {
-		m.history = m.history[:10]
-	}
-
 	m.session.mu.Lock()
 	bets := make([]Bet, len(m.session.Bets))
 	copy(bets, m.session.Bets)
@@ -557,15 +541,9 @@ func (m *Manager) runResultPhase() {
 }
 
 func (m *Manager) broadcastGameState(state messages.GamePhase, winningNumber int, countdown int) {
-	m.sessionMu.RLock()
-	history := make([]int, len(m.history))
-	copy(history, m.history)
-	m.sessionMu.RUnlock()
-
 	msg := messages.GameStateMessage{
-		Type:    "game_state",
-		State:   state,
-		History: history,
+		Type:  "game_state",
+		State: state,
 	}
 	if state == messages.GamePhaseResult {
 		msg.WinningNumber = &winningNumber

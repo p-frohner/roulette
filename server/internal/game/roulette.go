@@ -37,8 +37,8 @@ func (s GameState) String() string {
 const (
 	BettingDuration  = 20 * time.Second
 	SpinningDuration = 5 * time.Second
-	ResultDuration   = 5 * time.Second
-	StartingBalance  = 10000 // $100.00 in cents
+	ResultDuration   = 7 * time.Second // 2.5s of this is the wheel decelrate animation
+	StartingBalance  = 10000           // $100.00 in cents
 )
 
 // RedNumbers maps roulette numbers that are red
