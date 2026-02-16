@@ -14,6 +14,7 @@ export interface ConnectionSlice {
 		playerName: string,
 		players?: Player[],
 	) => void;
+	handleSessionExpired: () => void;
 }
 
 export const createConnectionSlice: StateCreator<
@@ -46,5 +47,9 @@ export const createConnectionSlice: StateCreator<
 		}
 
 		addActivityLog(`Connected as ${displayName}`, "info");
+	},
+
+	handleSessionExpired: () => {
+		set({ userId: null, playerName: null });
 	},
 });

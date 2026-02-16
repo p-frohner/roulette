@@ -12,6 +12,8 @@ import (
 )
 
 const maxNameLength = 20
+const cleanupInterval = 1 * time.Minute
+const disconnectGracePeriod = 1 * time.Minute
 
 func sanitizeName(name string) string {
 	name = strings.Map(func(r rune) rune {
@@ -356,9 +358,6 @@ func (m *Manager) RunGameLoop() {
 
 // runCleanup periodically removes users who have been disconnected for too long.
 func (m *Manager) runCleanup() {
-	const cleanupInterval = 1 * time.Minute
-	const disconnectGracePeriod = 1 * time.Hour
-
 	m.cleanupTicker = time.NewTicker(cleanupInterval)
 	defer m.cleanupTicker.Stop()
 

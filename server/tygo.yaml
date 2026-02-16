@@ -13,7 +13,13 @@ packages:
         | BetAcceptedMessage
         | BetRejectedMessage
         | ResultMessage
-        | BetPlacedMessage;
+        | BetPlacedMessage
+        | PlayerListMessage
+        | PlayerJoinedMessage
+        | PlayerLeftMessage
+        | PlayerBalanceUpdatedMessage
+        | SessionExpiredMessage;
       export type ClientMessage =
         | PlaceBetAction
-        | SetNameAction;
+        | SetNameAction
+        | ReconnectAction;

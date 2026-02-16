@@ -71,20 +71,22 @@ func (c *Client) ReadPump() {
 
 		switch msg.Action {
 		case "reconnect":
-			// Identify/Restore User
 			if user := c.Hub.gameManager.GetUser(msg.UserID); user != nil {
 				c.UserID = msg.UserID
 				c.Hub.gameManager.SetUserName(msg.UserID, msg.Name)
 				c.Hub.gameManager.MarkUserReconnected(msg.UserID)
-			} else {
-				c.Hub.gameManager.RegisterUser(c.UserID)
-				c.Hub.gameManager.SetUserName(c.UserID, msg.Name)
-			}
 
-			// Sync State
-			c.Hub.Register(c)
-			c.sendSessionData()
-			c.Hub.gameManager.NotifyPlayerJoined(c.UserID)
+				c.Hub.Register(c)
+				c.sendSessionData()
+				c.Hub.gameManager.NotifyPlayerJoined(c.UserID)
+			} else {
+				// User was cleaned up — tell client to start fresh
+				resp, _ := json.Marshal(messages.SessionExpiredMessage{
+					Type:   "session_expired",
+					Reason: "Session expired due to inactivity",
+				})
+				c.Send <- resp
+			}
 
 		case "set_name":
 			c.Hub.gameManager.RegisterUser(c.UserID)

@@ -11,7 +11,8 @@ export type ServerMessage =
   | PlayerListMessage
   | PlayerJoinedMessage
   | PlayerLeftMessage
-  | PlayerBalanceUpdatedMessage;
+  | PlayerBalanceUpdatedMessage
+  | SessionExpiredMessage;
 export type ClientMessage =
   | PlaceBetAction
   | SetNameAction
@@ -121,6 +122,10 @@ export interface PlayerBalanceUpdatedMessage {
   type: 'player_balance_updated';
   user_id: string;
   balance: number /* int64 */;
+}
+export interface SessionExpiredMessage {
+  type: 'session_expired';
+  reason: string;
 }
 export interface PlaceBetAction {
   action: 'place_bet';

@@ -116,6 +116,11 @@ type PlayerBalanceUpdatedMessage struct {
 	Balance int64  `json:"balance"`
 }
 
+type SessionExpiredMessage struct {
+	Type   string `json:"type"   tstype:"'session_expired'"`
+	Reason string `json:"reason"`
+}
+
 // --- Client → Server messages ---
 
 type PlaceBetAction struct {

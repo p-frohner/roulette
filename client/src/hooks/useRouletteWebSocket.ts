@@ -137,5 +137,8 @@ const handleServerMessage = (
 		case "player_balance_updated":
 			store.updatePlayerBalance(msg.user_id, msg.balance);
 			break;
+		case "session_expired":
+			store.handleSessionExpired();
+			break;
 	}
 };
