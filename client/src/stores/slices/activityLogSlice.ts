@@ -6,12 +6,7 @@ import type { RouletteStore } from "../rouletteStore";
 export interface ActivityLogSlice {
 	activityLog: ActivityLogEntry[];
 	addActivityLog: (message: string, variant: ActivityLogEntry["variant"]) => void;
-	addBetLog: (
-		userId: string | undefined,
-		playerName: string,
-		betValue: string,
-		amount: number,
-	) => void;
+	addBetLog: (playerName: string, betValue: string, amount: number) => void;
 }
 
 let logIdCounter = 0;
@@ -40,7 +35,7 @@ export const createActivityLogSlice: StateCreator<
 		set({ activityLog: newLog.length > 100 ? newLog.slice(-100) : newLog });
 	},
 
-	addBetLog: (_userId, playerName, betValue, amount) => {
+	addBetLog: (playerName, betValue, amount) => {
 		const { addActivityLog } = get();
 		addActivityLog(
 			`${playerName} bet ${formatAmount(amount)} on ${betValue}`,

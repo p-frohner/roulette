@@ -125,7 +125,7 @@ const handleServerMessage = (
 			store.handleResult(msg);
 			break;
 		case "bet_placed":
-			store.addBetLog(msg.user_id, msg.player_name, msg.bet_value, msg.amount);
+			store.addBetLog(msg.player_name, msg.bet_value, msg.amount);
 			break;
 		case "player_list":
 			store.setPlayers(msg.players);

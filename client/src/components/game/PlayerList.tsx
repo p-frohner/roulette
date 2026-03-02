@@ -1,12 +1,11 @@
 import { Box, Paper, Stack, Typography } from "@mui/material";
 import type { Player } from "../../types/game";
+import { formatAmount } from "../../utils/format";
 
 type Props = {
 	players: Player[];
 	currentUserId: string | null;
 };
-
-const formatBalance = (cents: number): string => `$${(cents / 100).toFixed(2)}`;
 
 export const PlayerList = ({ players, currentUserId }: Props) => {
 	return (
@@ -40,7 +39,7 @@ export const PlayerList = ({ players, currentUserId }: Props) => {
 									{player.name} {isYou && "(You)"}
 								</Typography>
 								<Typography variant="body2" fontWeight="bold">
-									{formatBalance(player.balance)}
+									{formatAmount(player.balance)}
 								</Typography>
 							</Stack>
 						</Box>

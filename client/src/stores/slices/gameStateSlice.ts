@@ -7,7 +7,6 @@ export interface GameStateSlice {
 	gamePhase: GamePhase;
 	countdown: number;
 	winningNumber: number | null;
-	lastResult: ResultMessage | null;
 	pendingResult: ResultMessage | null;
 	handleGameState: (phase: GamePhase, winningNumber: number | null, countdown?: number) => void;
 	setCountdown: (secondsRemaining: number) => void;
@@ -23,7 +22,6 @@ export const createGameStateSlice: StateCreator<RouletteStore, [], [], GameState
 	gamePhase: "BETTING",
 	countdown: 0,
 	winningNumber: null,
-	lastResult: null,
 	pendingResult: null,
 
 	handleGameState: (phase, winningNumber, countdown) => {
@@ -39,7 +37,6 @@ export const createGameStateSlice: StateCreator<RouletteStore, [], [], GameState
 		}
 
 		if (phase === "BETTING") {
-			updates.lastResult = null;
 			updates.pendingResult = null;
 			clearPendingBets();
 			clearLastBetResponse();
@@ -60,7 +57,6 @@ export const createGameStateSlice: StateCreator<RouletteStore, [], [], GameState
 	handleResult: (message) => {
 		set({
 			pendingResult: message,
-			lastResult: message,
 		});
 	},
 
