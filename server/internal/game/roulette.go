@@ -54,6 +54,7 @@ type User struct {
 	ID             string     `json:"id"`
 	Name           string     `json:"name"`
 	Balance        int64      `json:"balance"`
+	SessionToken   string     `json:"-"` // never sent directly; included in WelcomeMessage only
 	LastDisconnect *time.Time `json:"last_disconnect,omitempty"` // nil when connected, set when disconnected
 	mu             sync.Mutex
 }

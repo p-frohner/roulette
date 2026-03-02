@@ -44,11 +44,11 @@ type Player struct {
 // --- Server → Client messages ---
 
 type WelcomeMessage struct {
-	Type    string   `json:"type"    tstype:"'welcome'"`
-	UserID  string   `json:"user_id"`
-	Balance int64    `json:"balance"`
-	History []int    `json:"history"`
-	Players []Player `json:"players"`
+	Type         string   `json:"type"          tstype:"'welcome'"`
+	UserID       string   `json:"user_id"`
+	SessionToken string   `json:"session_token"`
+	Balance      int64    `json:"balance"`
+	Players      []Player `json:"players"`
 }
 
 type GameStateMessage struct {
@@ -56,7 +56,6 @@ type GameStateMessage struct {
 	State         GamePhase `json:"state"`
 	WinningNumber *int      `json:"winning_number,omitempty"`
 	Countdown     *int      `json:"countdown,omitempty"`
-	History       []int     `json:"history"`
 }
 
 type CountdownMessage struct {
@@ -136,7 +135,8 @@ type SetNameAction struct {
 }
 
 type ReconnectAction struct {
-	Action string `json:"action" tstype:"'reconnect'"`
-	UserID string `json:"user_id"`
-	Name   string `json:"name"`
+	Action       string `json:"action"        tstype:"'reconnect'"`
+	UserID       string `json:"user_id"`
+	SessionToken string `json:"session_token"`
+	Name         string `json:"name"`
 }

@@ -1,6 +1,8 @@
 package game
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 )
 
@@ -199,6 +201,7 @@ func TestValidateBet_UnknownType(t *testing.T) {
 
 func TestPlaceBet_RejectsWhenNotBetting(t *testing.T) {
 	m := NewManager(func([]byte) {}, func(string, []byte) {})
+	t.Cleanup(func() { m.Stop() })
 	m.RegisterUser("u1")
 
 	// Set state to spinning
@@ -214,6 +217,7 @@ func TestPlaceBet_RejectsWhenNotBetting(t *testing.T) {
 
 func TestPlaceBet_RejectsInsufficientBalance(t *testing.T) {
 	m := NewManager(func([]byte) {}, func(string, []byte) {})
+	t.Cleanup(func() { m.Stop() })
 	m.RegisterUser("u1")
 
 	// Set state to betting
@@ -229,6 +233,7 @@ func TestPlaceBet_RejectsInsufficientBalance(t *testing.T) {
 
 func TestPlaceBet_Success(t *testing.T) {
 	m := NewManager(func([]byte) {}, func(string, []byte) {})
+	t.Cleanup(func() { m.Stop() })
 	user := m.RegisterUser("u1")
 
 	m.sessionMu.Lock()
@@ -253,6 +258,58 @@ func TestPlaceBet_Success(t *testing.T) {
 	m.session.mu.Lock()
 	if len(m.session.Bets) != 1 {
 		t.Errorf("expected 1 bet, got %d", len(m.session.Bets))
+	}
+	m.session.mu.Unlock()
+	m.sessionMu.RUnlock()
+}
+
+// TestPlaceBet_ConcurrentBets verifies that simultaneous bets from multiple
+// goroutines neither race nor corrupt the balance. Run with -race.
+func TestPlaceBet_ConcurrentBets(t *testing.T) {
+	const numBettors = 10
+	const betAmount = int64(100)
+
+	m := NewManager(func([]byte) {}, func(string, []byte) {})
+	t.Cleanup(func() { m.Stop() })
+
+	// Register one user per goroutine
+	for i := range numBettors {
+		m.RegisterUser(fmt.Sprintf("u%d", i))
+	}
+
+	m.sessionMu.Lock()
+	m.session.State = StateBetting
+	m.sessionMu.Unlock()
+
+	var wg sync.WaitGroup
+	wg.Add(numBettors)
+	for i := range numBettors {
+		go func(id string) {
+			defer wg.Done()
+			_, err := m.PlaceBet(id, "straight", "7", betAmount)
+			if err != nil {
+				t.Errorf("unexpected error for %s: %v", id, err)
+			}
+		}(fmt.Sprintf("u%d", i))
+	}
+	wg.Wait()
+
+	// Every user should have been debited exactly betAmount
+	for i := range numBettors {
+		user := m.GetUser(fmt.Sprintf("u%d", i))
+		user.mu.Lock()
+		got := user.Balance
+		user.mu.Unlock()
+		if got != StartingBalance-betAmount {
+			t.Errorf("u%d: expected balance %d, got %d", i, StartingBalance-betAmount, got)
+		}
+	}
+
+	// All bets should be recorded
+	m.sessionMu.RLock()
+	m.session.mu.Lock()
+	if len(m.session.Bets) != numBettors {
+		t.Errorf("expected %d bets, got %d", numBettors, len(m.session.Bets))
 	}
 	m.session.mu.Unlock()
 	m.sessionMu.RUnlock()

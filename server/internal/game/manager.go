@@ -1,6 +1,8 @@
 package game
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"log/slog"
 	"strings"
@@ -78,17 +80,41 @@ func (m *Manager) SetConnectionChecker(cc ConnectionChecker) {
 	m.connChecker = cc
 }
 
-// RegisterUser creates a new user with the starting balance.
+// generateSessionToken creates a cryptographically random 16-byte hex token.
+func generateSessionToken() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		// crypto/rand failure is exceedingly rare; log and fall back to a
+		// non-empty sentinel so the token field is never blank.
+		slog.Error("failed to generate session token", "error", err)
+		return "fallback-token"
+	}
+	return hex.EncodeToString(b)
+}
+
+// RegisterUser creates a new user with the starting balance and a session token.
 func (m *Manager) RegisterUser(userID string) *User {
 	m.usersMu.Lock()
 	defer m.usersMu.Unlock()
 
 	user := &User{
-		ID:      userID,
-		Balance: StartingBalance,
+		ID:           userID,
+		Balance:      StartingBalance,
+		SessionToken: generateSessionToken(),
 	}
 	m.users[userID] = user
 	return user
+}
+
+// ValidateSessionToken returns true if the given token matches the stored token for userID.
+func (m *Manager) ValidateSessionToken(userID, token string) bool {
+	user := m.GetUser(userID)
+	if user == nil {
+		return false
+	}
+	user.mu.Lock()
+	defer user.mu.Unlock()
+	return user.SessionToken != "" && user.SessionToken == token
 }
 
 // UnregisterUser removes a user from the manager.
@@ -157,6 +183,17 @@ func (m *Manager) GetUserName(userID string) string {
 	user.mu.Lock()
 	defer user.mu.Unlock()
 	return user.Name
+}
+
+// GetSessionToken returns the session token for a user, or empty string if not found.
+func (m *Manager) GetSessionToken(userID string) string {
+	user := m.GetUser(userID)
+	if user == nil {
+		return ""
+	}
+	user.mu.Lock()
+	defer user.mu.Unlock()
+	return user.SessionToken
 }
 
 // GetAllPlayers returns a snapshot of all players with their connection status.

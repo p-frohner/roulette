@@ -25,12 +25,13 @@ type Client struct {
 }
 
 type ClientMessage struct {
-	Action   string `json:"action"`
-	BetType  string `json:"bet_type"`
-	BetValue string `json:"bet_value"`
-	Amount   int64  `json:"amount"`
-	Name     string `json:"name"`
-	UserID   string `json:"user_id"`
+	Action       string `json:"action"`
+	BetType      string `json:"bet_type"`
+	BetValue     string `json:"bet_value"`
+	Amount       int64  `json:"amount"`
+	Name         string `json:"name"`
+	UserID       string `json:"user_id"`
+	SessionToken string `json:"session_token"`
 }
 
 func NewClient(hub *Hub, conn *websocket.Conn, userID string) *Client {
@@ -39,6 +40,29 @@ func NewClient(hub *Hub, conn *websocket.Conn, userID string) *Client {
 		conn:   conn,
 		Send:   make(chan []byte, 256),
 		UserID: userID,
+	}
+}
+
+// mustJSON marshals v to JSON and panics if it fails.
+// All message structs are well-typed and never contain un-serializable fields,
+// so a failure here indicates a programming error, not a runtime condition.
+func mustJSON(v any) []byte {
+	data, err := json.Marshal(v)
+	if err != nil {
+		panic("ws: failed to marshal message: " + err.Error())
+	}
+	return data
+}
+
+// trySend delivers data to the client's send buffer without blocking.
+// Returns false (and logs a warning) if the buffer is full.
+func (c *Client) trySend(data []byte) bool {
+	select {
+	case c.Send <- data:
+		return true
+	default:
+		slog.Warn("client send buffer full, dropping message", "user_id", c.UserID)
+		return false
 	}
 }
 
@@ -71,7 +95,7 @@ func (c *Client) ReadPump() {
 
 		switch msg.Action {
 		case "reconnect":
-			if user := c.Hub.gameManager.GetUser(msg.UserID); user != nil {
+			if c.Hub.gameManager.ValidateSessionToken(msg.UserID, msg.SessionToken) {
 				c.UserID = msg.UserID
 				c.Hub.gameManager.SetUserName(msg.UserID, msg.Name)
 				c.Hub.gameManager.MarkUserReconnected(msg.UserID)
@@ -80,12 +104,11 @@ func (c *Client) ReadPump() {
 				c.sendSessionData()
 				c.Hub.gameManager.NotifyPlayerJoined(c.UserID)
 			} else {
-				// User was cleaned up — tell client to start fresh
-				resp, _ := json.Marshal(messages.SessionExpiredMessage{
+				// Either the user was cleaned up or the token is invalid.
+				c.trySend(mustJSON(messages.SessionExpiredMessage{
 					Type:   "session_expired",
 					Reason: "Session expired due to inactivity",
-				})
-				c.Send <- resp
+				}))
 			}
 
 		case "set_name":
@@ -143,24 +166,21 @@ func (c *Client) sendSessionData() {
 		return
 	}
 
-	// Send Welcome Message
-	welcome, _ := json.Marshal(messages.WelcomeMessage{
-		Type:    "welcome",
-		UserID:  c.UserID,
-		Balance: user.Balance,
-		Players: c.Hub.gameManager.GetAllPlayers(),
-	})
-	c.Send <- welcome
+	c.trySend(mustJSON(messages.WelcomeMessage{
+		Type:         "welcome",
+		UserID:       c.UserID,
+		SessionToken: c.Hub.gameManager.GetSessionToken(c.UserID),
+		Balance:      user.Balance,
+		Players:      c.Hub.gameManager.GetAllPlayers(),
+	}))
 
-	// Send Current Game State
 	state, winNum, count := c.Hub.gameManager.GetCurrentGameState()
-	gameState, _ := json.Marshal(messages.GameStateMessage{
+	c.trySend(mustJSON(messages.GameStateMessage{
 		Type:          "game_state",
 		State:         state,
 		WinningNumber: winNum,
 		Countdown:     count,
-	})
-	c.Send <- gameState
+	}))
 }
 
 // handlePlaceBet encapsulates the betting logic and notifications
@@ -168,35 +188,31 @@ func (c *Client) handlePlaceBet(msg ClientMessage) {
 	newBalance, betErr := c.Hub.gameManager.PlaceBet(c.UserID, msg.BetType, msg.BetValue, msg.Amount)
 
 	if betErr != nil {
-		resp, _ := json.Marshal(messages.BetRejectedMessage{
+		c.trySend(mustJSON(messages.BetRejectedMessage{
 			Type:   "bet_rejected",
 			Reason: betErr.Error(),
-		})
-		c.Send <- resp
+		}))
 		return
 	}
 
 	// Send confirmation back to the bettor
-	resp, _ := json.Marshal(messages.BetAcceptedMessage{
+	c.trySend(mustJSON(messages.BetAcceptedMessage{
 		Type:     "bet_accepted",
 		BetType:  messages.BetType(msg.BetType),
 		BetValue: msg.BetValue,
 		Amount:   msg.Amount,
 		Balance:  newBalance,
-	})
-	c.Send <- resp
+	}))
 
 	// Broadcast the bet details to everyone else
-	playerName := c.Hub.gameManager.GetUserName(c.UserID)
-	broadcast, _ := json.Marshal(messages.BetPlacedMessage{
+	c.Hub.BroadcastToAll(mustJSON(messages.BetPlacedMessage{
 		Type:       "bet_placed",
 		UserID:     c.UserID,
-		PlayerName: playerName,
+		PlayerName: c.Hub.gameManager.GetUserName(c.UserID),
 		BetType:    messages.BetType(msg.BetType),
 		BetValue:   msg.BetValue,
 		Amount:     msg.Amount,
-	})
-	c.Hub.BroadcastToAll(broadcast)
+	}))
 
 	// Sync balance update to all client UI lists
 	c.Hub.gameManager.NotifyBalanceUpdated(c.UserID, newBalance)
