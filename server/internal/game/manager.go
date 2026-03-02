@@ -15,7 +15,7 @@ import (
 
 const maxNameLength = 20
 const cleanupInterval = 1 * time.Minute
-const disconnectGracePeriod = 1 * time.Minute
+const disconnectGracePeriod = 15 * time.Minute
 
 func sanitizeName(name string) string {
 	name = strings.Map(func(r rune) rune {

@@ -64,8 +64,8 @@ export interface Player {
 export interface WelcomeMessage {
   type: 'welcome';
   user_id: string;
+  session_token: string;
   balance: number /* int64 */;
-  history: number /* int */[];
   players: Player[];
 }
 export interface GameStateMessage {
@@ -73,7 +73,6 @@ export interface GameStateMessage {
   state: GamePhase;
   winning_number?: number /* int */;
   countdown?: number /* int */;
-  history: number /* int */[];
 }
 export interface CountdownMessage {
   type: 'countdown';
@@ -140,5 +139,6 @@ export interface SetNameAction {
 export interface ReconnectAction {
   action: 'reconnect';
   user_id: string;
+  session_token: string;
   name: string;
 }

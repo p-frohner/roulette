@@ -5,11 +5,13 @@ import type { RouletteStore } from "../rouletteStore";
 export interface ConnectionSlice {
 	connected: boolean;
 	userId: string | null;
+	sessionToken: string | null;
 	playerName: string | null;
 	setConnected: (connected: boolean) => void;
 	setPlayerName: (name: string) => void;
 	handleWelcome: (
 		userId: string,
+		sessionToken: string,
 		balance: number,
 		playerName: string,
 		players?: Player[],
@@ -25,6 +27,7 @@ export const createConnectionSlice: StateCreator<
 > = (set, get, _api) => ({
 	connected: false,
 	userId: null,
+	sessionToken: null,
 	playerName: null,
 
 	setConnected: (connected) => {
@@ -35,12 +38,12 @@ export const createConnectionSlice: StateCreator<
 		set({ playerName: name });
 	},
 
-	handleWelcome: (userId, balance, playerName, players) => {
+	handleWelcome: (userId, sessionToken, balance, playerName, players) => {
 		const displayName = `${playerName}#${userId.slice(0, 4)}`;
 
 		const { addActivityLog, setPlayers } = get();
 
-		set({ userId, balance });
+		set({ userId, sessionToken, balance });
 
 		if (players) {
 			setPlayers(players);
@@ -50,6 +53,6 @@ export const createConnectionSlice: StateCreator<
 	},
 
 	handleSessionExpired: () => {
-		set({ userId: null, playerName: null });
+		set({ userId: null, sessionToken: null });
 	},
 });

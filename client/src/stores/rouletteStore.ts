@@ -26,6 +26,7 @@ export const useRouletteStore = create<RouletteStore>()(
 				name: "roulette-connection",
 				partialize: (state) => ({
 					userId: state.userId,
+					sessionToken: state.sessionToken,
 					playerName: state.playerName,
 				}),
 			},

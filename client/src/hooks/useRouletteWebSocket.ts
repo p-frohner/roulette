@@ -37,10 +37,12 @@ export const useRouletteWebSocket = () => {
 
 					if (userId) {
 						// Reconnect with persisted identity
+						const { sessionToken } = useRouletteStore.getState();
 						ws.send(
 							JSON.stringify({
 								action: "reconnect",
 								user_id: userId,
+								session_token: sessionToken ?? "",
 								name: playerName,
 							}),
 						);
@@ -105,7 +107,7 @@ const handleServerMessage = (
 ): void => {
 	switch (msg.type) {
 		case "welcome":
-			store.handleWelcome(msg.user_id, msg.balance, playerName, msg.players);
+			store.handleWelcome(msg.user_id, msg.session_token, msg.balance, playerName, msg.players);
 			break;
 		case "game_state":
 			store.handleGameState(msg.state, msg.winning_number ?? null, msg.countdown);
