@@ -1,5 +1,5 @@
 import { Button, Stack, Typography } from "@mui/material";
-import { formatCents } from "../../utils/format";
+import { formatAmount } from "../../utils/format";
 
 type Props = {
 	balance: number;
@@ -13,19 +13,19 @@ const CHIP_VALUES = [100, 500, 1000, 2500, 5000];
 
 export const BetAmount = ({ balance, selectedChip, onSelectChip, disabled, horizontal }: Props) => {
 	return (
-		<Stack alignItems="center">
+		<Stack alignItems="center" minWidth={100}>
 			{/* Balance */}
-			<Stack direction="row" spacing={1} alignItems="center" mb={1}>
-				<Typography variant="body2" color="text.secondary">
-					Balance
-				</Typography>
-				<Typography variant="h6" fontWeight={700} color="secondary.main">
-					{formatCents(balance)}
-				</Typography>
-			</Stack>
+			<Typography variant="h6" fontWeight={700} color="secondary.main" mb={1}>
+				{formatAmount(balance)}
+			</Typography>
 
 			{/* Chip selector */}
-			<Stack direction={horizontal ? "row" : "column"} spacing={1} flexWrap="wrap" justifyContent="center">
+			<Stack
+				direction={horizontal ? "row" : "column"}
+				spacing={1}
+				flexWrap="wrap"
+				justifyContent="center"
+			>
 				{CHIP_VALUES.map((value) => (
 					<Button
 						key={value}
@@ -46,7 +46,7 @@ export const BetAmount = ({ balance, selectedChip, onSelectChip, disabled, horiz
 							},
 						}}
 					>
-						{formatCents(value)}
+						{formatAmount(value)}
 					</Button>
 				))}
 			</Stack>

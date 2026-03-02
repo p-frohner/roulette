@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouletteWebSocket } from "../../hooks/useRouletteWebSocket";
 import { useRouletteStore } from "../../stores/rouletteStore";
 import type { BetType } from "../../types/game";
-import { formatCents } from "../../utils/format";
+import { formatAmount } from "../../utils/format";
 import { ActivityLog } from "./ActivityLog";
 import { BetAmount } from "./BetAmount";
 import { BettingBoard } from "./BettingBoard";
@@ -125,7 +125,7 @@ export const RouletteGame = () => {
 							color: "#000",
 						}}
 					>
-						Place Bets {balance > 0 && `(${formatCents(balance)})`}
+						Place Bets {balance > 0 && `(${formatAmount(balance)})`}
 					</Button>
 					<Box flex={1} minHeight={0} overflow="hidden">
 						<ActivityLog activityLog={activityLog} />

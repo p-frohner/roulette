@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand";
 import type { GamePhase, ResultMessage } from "../../types/game";
-import { formatCents } from "../../utils/format";
+import { formatAmount } from "../../utils/format";
 import type { RouletteStore } from "../rouletteStore";
 
 export interface GameStateSlice {
@@ -80,7 +80,7 @@ export const createGameStateSlice: StateCreator<RouletteStore, [], [], GameState
 		addActivityLog(`Ball landed on ${msg.winning_number}`, "result");
 
 		if (msg.total_won > 0) {
-			addActivityLog(`You won ${formatCents(msg.total_won)}!`, "win");
+			addActivityLog(`You won ${formatAmount(msg.total_won)}!`, "win");
 		}
 	},
 });

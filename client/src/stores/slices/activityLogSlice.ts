@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand";
 import type { ActivityLogEntry } from "../../types/game";
-import { formatCents } from "../../utils/format";
+import { formatAmount } from "../../utils/format";
 import type { RouletteStore } from "../rouletteStore";
 
 export interface ActivityLogSlice {
@@ -43,7 +43,7 @@ export const createActivityLogSlice: StateCreator<
 	addBetLog: (_userId, playerName, betValue, amount) => {
 		const { addActivityLog } = get();
 		addActivityLog(
-			`${playerName} bet ${formatCents(amount)} on ${betValue}`,
+			`${playerName} bet ${formatAmount(amount)} on ${betValue}`,
 			"bet",
 		);
 	},

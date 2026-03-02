@@ -10,6 +10,126 @@ type Props = {
 	vertical?: boolean;
 };
 
+export const BettingBoard = ({
+	onSelectBet,
+	disabled,
+	showResult,
+	winningNumber,
+	vertical,
+}: Props) => {
+	const grid = vertical ? V_GRID : H_GRID;
+	const handleClick = (betType: BetType, betValue: string) => {
+		if (!disabled) {
+			onSelectBet(betType, betValue);
+		}
+	};
+
+	return (
+		<Box>
+			{/* Color and Even/Odd */}
+			<Box display="grid" gridTemplateColumns="repeat(4, 1fr)" gap={0.5} mb={1}>
+				<OutsideBet
+					disabled={disabled}
+					isWinner={showResult && isWinnerOutside("color", "red", winningNumber)}
+					bgColor="#C62828"
+					onClick={() => handleClick("color", "red")}
+				>
+					Red
+				</OutsideBet>
+				<OutsideBet
+					disabled={disabled}
+					isWinner={showResult && isWinnerOutside("color", "black", winningNumber)}
+					bgColor="#212121"
+					onClick={() => handleClick("color", "black")}
+				>
+					Black
+				</OutsideBet>
+				<OutsideBet
+					disabled={disabled}
+					isWinner={showResult && isWinnerOutside("even_odd", "even", winningNumber)}
+					onClick={() => handleClick("even_odd", "even")}
+				>
+					Even
+				</OutsideBet>
+				<OutsideBet
+					disabled={disabled}
+					isWinner={showResult && isWinnerOutside("even_odd", "odd", winningNumber)}
+					onClick={() => handleClick("even_odd", "odd")}
+				>
+					Odd
+				</OutsideBet>
+			</Box>
+
+			{/* Number grid */}
+			<Box
+				display="grid"
+				gridTemplateColumns={vertical ? "repeat(3, 1fr)" : "auto repeat(12, 1fr)"}
+				gridTemplateRows={vertical ? undefined : "repeat(3, 1fr)"}
+				gap={0.5}
+				mb={1}
+			>
+				<Cell
+					bgColor={COLOR_MAP.green}
+					isWinner={showResult && winningNumber === 0}
+					disabled={disabled}
+					onClick={() => handleClick("straight", "0")}
+					style={
+						vertical
+							? { gridColumn: "1 / 4", fontSize: "1.2rem" }
+							: { gridRow: "1 / 4", fontSize: "1.2rem", width: 70 }
+					}
+				>
+					0
+				</Cell>
+				{grid.map((row) =>
+					row.map((n) => (
+						<Cell
+							key={n}
+							bgColor={COLOR_MAP[getNumberColor(n)]}
+							isWinner={showResult && winningNumber === n}
+							disabled={disabled}
+							onClick={() => handleClick("straight", String(n))}
+						>
+							{n}
+						</Cell>
+					)),
+				)}
+			</Box>
+
+			{/* Dozens */}
+			<Box
+				display="grid"
+				gridTemplateColumns={vertical ? "repeat(3, 1fr)" : "auto repeat(3, 1fr)"}
+				gap={0.5}
+				mb={1}
+			>
+				{!vertical && <Box width={70} />}
+				<OutsideBet
+					disabled={disabled}
+					isWinner={showResult && isWinnerOutside("dozens", "first", winningNumber)}
+					onClick={() => handleClick("dozens", "first")}
+				>
+					1st 12
+				</OutsideBet>
+				<OutsideBet
+					disabled={disabled}
+					isWinner={showResult && isWinnerOutside("dozens", "second", winningNumber)}
+					onClick={() => handleClick("dozens", "second")}
+				>
+					2nd 12
+				</OutsideBet>
+				<OutsideBet
+					disabled={disabled}
+					isWinner={showResult && isWinnerOutside("dozens", "third", winningNumber)}
+					onClick={() => handleClick("dozens", "third")}
+				>
+					3rd 12
+				</OutsideBet>
+			</Box>
+		</Box>
+	);
+};
+
 const Cell = styled("button", {
 	shouldForwardProp: (prop) => prop !== "bgColor" && prop !== "isWinner",
 })<{ bgColor: string; isWinner: boolean; disabled: boolean }>(
@@ -108,112 +228,4 @@ const isWinnerOutside = (
 		default:
 			return false;
 	}
-};
-
-export const BettingBoard = ({ onSelectBet, disabled, showResult, winningNumber, vertical }: Props) => {
-	const grid = vertical ? V_GRID : H_GRID;
-	const handleClick = (betType: BetType, betValue: string) => {
-		if (!disabled) {
-			onSelectBet(betType, betValue);
-		}
-	};
-
-	return (
-		<Box>
-			{/* Number grid */}
-			<Box
-				display="grid"
-				gridTemplateColumns={vertical ? "repeat(3, 1fr)" : "auto repeat(12, 1fr)"}
-				gridTemplateRows={vertical ? undefined : "repeat(3, 1fr)"}
-				gap={0.5}
-				mb={1}
-			>
-				<Cell
-					bgColor={COLOR_MAP.green}
-					isWinner={showResult && winningNumber === 0}
-					disabled={disabled}
-					onClick={() => handleClick("straight", "0")}
-					style={
-						vertical
-							? { gridColumn: "1 / 4", fontSize: "1.2rem" }
-							: { gridRow: "1 / 4", fontSize: "1.2rem", width: 70 }
-					}
-				>
-					0
-				</Cell>
-				{grid.map((row) =>
-					row.map((n) => (
-						<Cell
-							key={n}
-							bgColor={COLOR_MAP[getNumberColor(n)]}
-							isWinner={showResult && winningNumber === n}
-							disabled={disabled}
-							onClick={() => handleClick("straight", String(n))}
-						>
-							{n}
-						</Cell>
-					)),
-				)}
-			</Box>
-
-			{/* Dozens */}
-			<Box display="grid" gridTemplateColumns="repeat(3, 1fr)" gap={0.5} mb={1}>
-				<OutsideBet
-					disabled={disabled}
-					isWinner={showResult && isWinnerOutside("dozens", "first", winningNumber)}
-					onClick={() => handleClick("dozens", "first")}
-				>
-					1st 12
-				</OutsideBet>
-				<OutsideBet
-					disabled={disabled}
-					isWinner={showResult && isWinnerOutside("dozens", "second", winningNumber)}
-					onClick={() => handleClick("dozens", "second")}
-				>
-					2nd 12
-				</OutsideBet>
-				<OutsideBet
-					disabled={disabled}
-					isWinner={showResult && isWinnerOutside("dozens", "third", winningNumber)}
-					onClick={() => handleClick("dozens", "third")}
-				>
-					3rd 12
-				</OutsideBet>
-			</Box>
-
-			{/* Color and Even/Odd */}
-			<Box display="grid" gridTemplateColumns="repeat(4, 1fr)" gap={0.5}>
-				<OutsideBet
-					disabled={disabled}
-					isWinner={showResult && isWinnerOutside("color", "red", winningNumber)}
-					bgColor="#C62828"
-					onClick={() => handleClick("color", "red")}
-				>
-					Red
-				</OutsideBet>
-				<OutsideBet
-					disabled={disabled}
-					isWinner={showResult && isWinnerOutside("color", "black", winningNumber)}
-					bgColor="#212121"
-					onClick={() => handleClick("color", "black")}
-				>
-					Black
-				</OutsideBet>
-				<OutsideBet
-					disabled={disabled}
-					isWinner={showResult && isWinnerOutside("even_odd", "even", winningNumber)}
-					onClick={() => handleClick("even_odd", "even")}
-				>
-					Even
-				</OutsideBet>
-				<OutsideBet
-					disabled={disabled}
-					isWinner={showResult && isWinnerOutside("even_odd", "odd", winningNumber)}
-					onClick={() => handleClick("even_odd", "odd")}
-				>
-					Odd
-				</OutsideBet>
-			</Box>
-		</Box>
-	);
 };
