@@ -1,4 +1,4 @@
-.PHONY: help install build-all run-server run-client generate reset-db
+.PHONY: help install build-all run-server run-client generate
 
 # The 'help' target will automatically scan this file and print anything with a double hash (##)
 help: ## Display this help screen
@@ -23,7 +23,3 @@ docker-up: ## Start everything via Docker Compose (including DB)
 
 docker-down: ## Stop all Docker services
 	docker compose down
-
-reset-db: ## Wipe the Docker database volume and restart (Use with caution!)
-	docker compose down -v
-	docker compose up -d db
