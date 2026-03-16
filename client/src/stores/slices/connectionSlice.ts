@@ -4,10 +4,12 @@ import type { RouletteStore } from "../rouletteStore";
 
 export interface ConnectionSlice {
 	connected: boolean;
+	reconnectAttempt: number;
 	userId: string | null;
 	sessionToken: string | null;
 	playerName: string | null;
 	setConnected: (connected: boolean) => void;
+	setReconnectAttempt: (n: number) => void;
 	setPlayerName: (name: string) => void;
 	handleWelcome: (
 		userId: string,
@@ -19,19 +21,23 @@ export interface ConnectionSlice {
 	handleSessionExpired: () => void;
 }
 
-export const createConnectionSlice: StateCreator<
-	RouletteStore,
-	[],
-	[],
-	ConnectionSlice
-> = (set, get, _api) => ({
+export const createConnectionSlice: StateCreator<RouletteStore, [], [], ConnectionSlice> = (
+	set,
+	get,
+	_api,
+) => ({
 	connected: false,
+	reconnectAttempt: 0,
 	userId: null,
 	sessionToken: null,
 	playerName: null,
 
 	setConnected: (connected) => {
-		set({ connected });
+		set({ connected, ...(connected ? { reconnectAttempt: 0 } : {}) });
+	},
+
+	setReconnectAttempt: (n) => {
+		set({ reconnectAttempt: n });
 	},
 
 	setPlayerName: (name) => {

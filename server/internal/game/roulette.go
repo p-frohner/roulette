@@ -36,7 +36,7 @@ func (s GameState) String() string {
 // Phase durations
 const (
 	BettingDuration  = 20 * time.Second
-	SpinningDuration = 5 * time.Second
+	SpinningDuration = 3 * time.Second
 	ResultDuration   = 7 * time.Second // 2.5s of this is the wheel decelrate animation
 	StartingBalance  = 10000           // $100.00 in cents
 )
@@ -54,7 +54,7 @@ type User struct {
 	ID             string     `json:"id"`
 	Name           string     `json:"name"`
 	Balance        int64      `json:"balance"`
-	SessionToken   string     `json:"-"` // never sent directly; included in WelcomeMessage only
+	SessionToken   string     `json:"-"`                         // never sent directly; included in WelcomeMessage only
 	LastDisconnect *time.Time `json:"last_disconnect,omitempty"` // nil when connected, set when disconnected
 	mu             sync.Mutex
 }

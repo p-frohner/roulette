@@ -52,11 +52,41 @@ export interface AnimState {
 
 // ─── Drop Profiles ───────────────────────────────────────────
 export const DROP_PROFILES: DropProfile[] = [
-	{ extraBallOrbits: 2, dropStartFraction: 0.55, hasBounce: false, extraWheelTurns: 2, easingPower: 4 },
-	{ extraBallOrbits: 3, dropStartFraction: 0.65, hasBounce: true, extraWheelTurns: 2, easingPower: 3 },
-	{ extraBallOrbits: 2, dropStartFraction: 0.7, hasBounce: false, extraWheelTurns: 3, easingPower: 5 },
-	{ extraBallOrbits: 4, dropStartFraction: 0.5, hasBounce: true, extraWheelTurns: 1, easingPower: 4 },
-	{ extraBallOrbits: 3, dropStartFraction: 0.6, hasBounce: false, extraWheelTurns: 2, easingPower: 3 },
+	{
+		extraBallOrbits: 2,
+		dropStartFraction: 0.55,
+		hasBounce: false,
+		extraWheelTurns: 2,
+		easingPower: 4,
+	},
+	{
+		extraBallOrbits: 3,
+		dropStartFraction: 0.65,
+		hasBounce: true,
+		extraWheelTurns: 2,
+		easingPower: 3,
+	},
+	{
+		extraBallOrbits: 2,
+		dropStartFraction: 0.7,
+		hasBounce: false,
+		extraWheelTurns: 3,
+		easingPower: 5,
+	},
+	{
+		extraBallOrbits: 4,
+		dropStartFraction: 0.5,
+		hasBounce: true,
+		extraWheelTurns: 1,
+		easingPower: 4,
+	},
+	{
+		extraBallOrbits: 3,
+		dropStartFraction: 0.6,
+		hasBounce: false,
+		extraWheelTurns: 2,
+		easingPower: 3,
+	},
 ];
 
 // ─── Easing Functions ────────────────────────────────────────

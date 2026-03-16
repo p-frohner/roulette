@@ -17,16 +17,16 @@ export const RouletteGame = () => {
 	const setPlayerName = useRouletteStore((s) => s.setPlayerName);
 	const {
 		connected,
+		reconnectAttempt,
 		userId,
 		balance,
 		gamePhase,
 		countdown,
 		winningNumber,
-		pendingResult,
 		activityLog,
 		players,
 		placeBet,
-		applyResult,
+		notifySettled,
 	} = useRouletteWebSocket();
 
 	const theme = useTheme();
@@ -48,7 +48,8 @@ export const RouletteGame = () => {
 
 	const handleWheelSettle = useCallback(() => {
 		setWheelSettled(true);
-	}, []);
+		notifySettled();
+	}, [notifySettled]);
 
 	// Track phase transitions for late-join detection
 	useEffect(() => {
@@ -65,13 +66,6 @@ export const RouletteGame = () => {
 			sawSpinningRef.current = false;
 		}
 	}, [gamePhase]);
-
-	// Apply result (balance + log entries) once wheel animation completes
-	useEffect(() => {
-		if (wheelSettled && pendingResult) {
-			applyResult();
-		}
-	}, [wheelSettled, pendingResult, applyResult]);
 
 	// Auto-close betting dialog when betting phase ends
 	useEffect(() => {
@@ -90,6 +84,7 @@ export const RouletteGame = () => {
 			winningNumber={winningNumber}
 			countdown={countdown}
 			connected={connected}
+			reconnectAttempt={reconnectAttempt}
 			onSettle={handleWheelSettle}
 		/>
 	);

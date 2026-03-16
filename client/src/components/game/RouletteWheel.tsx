@@ -22,6 +22,7 @@ interface Props {
 	winningNumber: number | null;
 	countdown: number;
 	connected: boolean;
+	reconnectAttempt: number;
 	onSettle?: () => void;
 }
 
@@ -90,6 +91,7 @@ export const RouletteWheel = ({
 	winningNumber,
 	countdown,
 	connected,
+	reconnectAttempt,
 	onSettle,
 }: Props) => {
 	const [settled, setSettled] = useState(false);
@@ -405,14 +407,30 @@ export const RouletteWheel = ({
 						<circle cx={CX} cy={CY} r={40} fill="rgba(0,0,0,0.6)" />
 						<text
 							x={CX}
-							y={CY}
+							y={reconnectAttempt >= 3 ? CY - 8 : CY}
 							textAnchor="middle"
 							dominantBaseline="central"
 							fill="#FFF"
-							fontSize="12"
+							fontSize={reconnectAttempt >= 3 ? "10" : "12"}
 						>
-							Connecting...
+							{reconnectAttempt === 0
+								? "Connecting..."
+								: reconnectAttempt <= 2
+									? "Reconnecting..."
+									: "Server waking up..."}
 						</text>
+						{reconnectAttempt >= 3 && (
+							<text
+								x={CX}
+								y={CY + 10}
+								textAnchor="middle"
+								dominantBaseline="central"
+								fill="rgba(255,255,255,0.6)"
+								fontSize="8"
+							>
+								(up to ~1 min)
+							</text>
+						)}
 					</>
 				)}
 

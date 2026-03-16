@@ -7,11 +7,9 @@ export interface GameStateSlice {
 	gamePhase: GamePhase;
 	countdown: number;
 	winningNumber: number | null;
-	pendingResult: ResultMessage | null;
 	handleGameState: (phase: GamePhase, winningNumber: number | null, countdown?: number) => void;
 	setCountdown: (secondsRemaining: number) => void;
-	handleResult: (message: ResultMessage) => void;
-	applyResult: () => void;
+	applyResultMsg: (msg: ResultMessage) => void;
 }
 
 export const createGameStateSlice: StateCreator<RouletteStore, [], [], GameStateSlice> = (
@@ -22,7 +20,6 @@ export const createGameStateSlice: StateCreator<RouletteStore, [], [], GameState
 	gamePhase: "BETTING",
 	countdown: 0,
 	winningNumber: null,
-	pendingResult: null,
 
 	handleGameState: (phase, winningNumber, countdown) => {
 		const { addActivityLog, clearPendingBets, clearLastBetResponse } = get();
@@ -37,7 +34,6 @@ export const createGameStateSlice: StateCreator<RouletteStore, [], [], GameState
 		}
 
 		if (phase === "BETTING") {
-			updates.pendingResult = null;
 			clearPendingBets();
 			clearLastBetResponse();
 			set(updates);
@@ -54,27 +50,10 @@ export const createGameStateSlice: StateCreator<RouletteStore, [], [], GameState
 		set({ countdown: secondsRemaining });
 	},
 
-	handleResult: (message) => {
-		set({
-			pendingResult: message,
-		});
-	},
-
-	applyResult: () => {
-		const { pendingResult, addActivityLog } = get();
-
-		if (!pendingResult) {
-			return;
-		}
-
-		const msg = pendingResult;
-		set({
-			balance: msg.balance,
-			pendingResult: null,
-		});
-
+	applyResultMsg: (msg) => {
+		const { addActivityLog } = get();
+		set({ balance: msg.balance });
 		addActivityLog(`Ball landed on ${msg.winning_number}`, "result");
-
 		if (msg.total_won > 0) {
 			addActivityLog(`You won ${formatAmount(msg.total_won)}!`, "win");
 		}

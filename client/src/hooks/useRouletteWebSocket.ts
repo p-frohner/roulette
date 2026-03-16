@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef } from "react";
+import { Subject, Subscription, timer, zip } from "rxjs";
+import { filter, retry, share, switchMap, take, timeout } from "rxjs/operators";
+import { type WebSocketSubject, webSocket } from "rxjs/webSocket";
 import { type RouletteStore, useRouletteStore } from "../stores/rouletteStore";
-import type { BetType, PlaceBetAction, ServerMessage } from "../types/game";
+import type { BetType, GameStateMessage, ResultMessage, ServerMessage } from "../types/game";
 
 const getWebSocketUrl = () => {
 	const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
@@ -12,92 +15,95 @@ const getWebSocketUrl = () => {
 export const useRouletteWebSocket = () => {
 	const store = useRouletteStore();
 	const playerName = useRouletteStore((s) => s.playerName);
-	const wsRef = useRef<WebSocket | null>(null);
-	const reconnectTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+	const subjectRef = useRef<WebSocketSubject<ServerMessage> | null>(null);
+	const settled$Ref = useRef(new Subject<void>());
+
+	const notifySettled = useCallback(() => settled$Ref.current.next(), []);
 
 	useEffect(() => {
 		if (!playerName) {
 			return;
 		}
 
-		let unmounted = false;
-
-		const connect = () => {
-			if (unmounted) {
-				return;
-			}
-
-			const ws = new WebSocket(getWebSocketUrl());
-			wsRef.current = ws;
-
-			ws.onopen = () => {
-				if (!unmounted) {
-					const { setConnected, userId } = useRouletteStore.getState();
-					setConnected(true);
-
-					if (userId) {
-						// Reconnect with persisted identity
-						const { sessionToken } = useRouletteStore.getState();
-						ws.send(
-							JSON.stringify({
+		const subject = webSocket<ServerMessage>({
+			url: getWebSocketUrl(),
+			openObserver: {
+				next: () => {
+					const s = useRouletteStore.getState();
+					s.setConnected(true);
+					const auth = s.userId
+						? {
 								action: "reconnect",
-								user_id: userId,
-								session_token: sessionToken ?? "",
+								user_id: s.userId,
+								session_token: s.sessionToken ?? "",
 								name: playerName,
-							}),
-						);
-					} else {
-						// New connection
-						ws.send(JSON.stringify({ action: "set_name", name: playerName }));
-					}
-				}
-			};
+							}
+						: { action: "set_name", name: playerName };
+					subject.next(auth as unknown as ServerMessage);
+				},
+			},
+			closeObserver: {
+				next: () => useRouletteStore.getState().setConnected(false),
+			},
+		});
+		subjectRef.current = subject;
 
-			ws.onmessage = (event) => {
-				try {
-					handleServerMessage(JSON.parse(event.data), useRouletteStore.getState(), playerName);
-				} catch {
-					// Ignore malformed messages
-				}
-			};
+		const messages$ = subject.pipe(
+			timeout({ first: 10_000 }),
+			retry({
+				delay: (_, retryCount) => {
+					useRouletteStore.getState().setReconnectAttempt(retryCount);
+					return timer(Math.min(2000 * 2 ** (retryCount - 1), 2_000));
+				},
+			}),
+			share(),
+		);
 
-			ws.onclose = () => {
-				if (!unmounted) {
-					useRouletteStore.getState().setConnected(false);
-					reconnectTimerRef.current = setTimeout(connect, 2000);
-				}
-			};
+		const result$ = messages$.pipe(filter((m): m is ResultMessage => m.type === "result"));
 
-			ws.onerror = () => {
-				ws.close();
-			};
-		};
+		const spinning$ = messages$.pipe(
+			filter((m): m is GameStateMessage => m.type === "game_state" && m.state === "SPINNING"),
+		);
 
-		connect();
+		const subs = new Subscription();
+
+		// reveal result exactly when animation settles
+		subs.add(
+			spinning$
+				.pipe(switchMap(() => zip(result$, settled$Ref.current).pipe(take(1))))
+				.subscribe(([resultMsg]) => useRouletteStore.getState().applyResultMsg(resultMsg)),
+		);
+
+		// session_expired: server kept the WS open, re-register immediately
+		subs.add(
+			messages$.pipe(filter((m) => m.type === "session_expired")).subscribe(() => {
+				subject.next({ action: "set_name", name: playerName } as unknown as ServerMessage);
+			}),
+		);
+
+		// other message routing
+		subs.add(
+			messages$.subscribe((msg) =>
+				handleServerMessage(msg, useRouletteStore.getState(), playerName),
+			),
+		);
 
 		return () => {
-			unmounted = true;
-			clearTimeout(reconnectTimerRef.current);
-			if (wsRef.current) {
-				wsRef.current.onclose = null; // Prevent reconnect on intentional close
-				wsRef.current.close();
-			}
+			subs.unsubscribe();
+			subject.complete();
 		};
 	}, [playerName]);
 
 	const placeBet = useCallback((betType: BetType, betValue: string, amount: number) => {
-		if (wsRef.current?.readyState === WebSocket.OPEN) {
-			const msg: PlaceBetAction = {
-				action: "place_bet",
-				bet_type: betType,
-				bet_value: betValue,
-				amount,
-			};
-			wsRef.current.send(JSON.stringify(msg));
-		}
+		subjectRef.current?.next({
+			action: "place_bet",
+			bet_type: betType,
+			bet_value: betValue,
+			amount,
+		} as unknown as ServerMessage);
 	}, []);
 
-	return { ...store, placeBet };
+	return { ...store, placeBet, notifySettled };
 };
 
 const handleServerMessage = (
@@ -120,9 +126,6 @@ const handleServerMessage = (
 			break;
 		case "bet_rejected":
 			store.handleBetRejected(msg);
-			break;
-		case "result":
-			store.handleResult(msg);
 			break;
 		case "bet_placed":
 			store.addBetLog(msg.player_name, msg.bet_value, msg.amount);
