@@ -26,8 +26,7 @@ export const ActivityLog = ({ activityLog }: { activityLog: ActivityLogEntry[] }
 	return (
 		<Box
 			sx={{
-				border: 1,
-				borderColor: "rgba(255,255,255,0.1)",
+				border: "1px solid rgba(201,168,76,0.2)",
 				borderRadius: 2,
 				p: 2,
 				height: "100%",
@@ -46,7 +45,7 @@ export const ActivityLog = ({ activityLog }: { activityLog: ActivityLogEntry[] }
 					overflowY: "auto",
 					"&::-webkit-scrollbar": { width: 4 },
 					"&::-webkit-scrollbar-thumb": {
-						backgroundColor: "rgba(255,255,255,0.2)",
+						backgroundColor: "rgba(201,168,76,0.3)",
 						borderRadius: 2,
 					},
 				}}
@@ -62,7 +61,12 @@ export const ActivityLog = ({ activityLog }: { activityLog: ActivityLogEntry[] }
 								variant="body2"
 								component="span"
 								color="text.secondary"
-								sx={{ fontSize: "0.75rem", mr: 1 }}
+								sx={{
+									fontSize: "0.7rem",
+									mr: 1,
+									fontFamily: '"JetBrains Mono", monospace',
+									letterSpacing: "0.02em",
+								}}
 							>
 								{formatTime(entry.timestamp)}
 							</Typography>

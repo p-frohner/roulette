@@ -10,7 +10,11 @@ type Props = {
 export const PlayerList = ({ players, currentUserId }: Props) => {
 	return (
 		<Paper sx={{ p: 2, height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
-			<Typography variant="h6" mb={2}>
+			<Typography
+				variant="h6"
+				mb={2}
+				sx={{ letterSpacing: "0.06em", textTransform: "uppercase", fontSize: "0.95rem" }}
+			>
 				Players ({players.length})
 			</Typography>
 			<Stack
@@ -21,7 +25,7 @@ export const PlayerList = ({ players, currentUserId }: Props) => {
 					overflowY: "auto",
 					"&::-webkit-scrollbar": { width: 4 },
 					"&::-webkit-scrollbar-thumb": {
-						backgroundColor: "rgba(255,255,255,0.2)",
+						backgroundColor: "rgba(201,168,76,0.3)",
 						borderRadius: 2,
 					},
 				}}
@@ -33,9 +37,10 @@ export const PlayerList = ({ players, currentUserId }: Props) => {
 							key={player.user_id}
 							sx={{
 								p: 1.5,
-								border: isYou ? "2px solid gold" : "1px solid rgba(255,255,255,0.2)",
+								border: isYou ? "2px solid" : "1px solid rgba(201,168,76,0.15)",
+								borderColor: isYou ? "secondary.main" : undefined,
 								borderRadius: 1,
-								backgroundColor: isYou ? "rgba(255,215,0,0.1)" : "transparent",
+								backgroundColor: isYou ? "rgba(201,168,76,0.08)" : "transparent",
 							}}
 						>
 							<Stack direction="row" alignItems="center" spacing={1}>
@@ -44,13 +49,17 @@ export const PlayerList = ({ players, currentUserId }: Props) => {
 										width: 8,
 										height: 8,
 										borderRadius: "50%",
-										backgroundColor: player.connected ? "#4caf50" : "#757575",
+										backgroundColor: player.connected ? "#4CAF50" : "#757575",
 									}}
 								/>
 								<Typography variant="body2" flex={1}>
 									{player.name} {isYou && "(You)"}
 								</Typography>
-								<Typography variant="body2" fontWeight="bold">
+								<Typography
+									variant="body2"
+									fontWeight="bold"
+									sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.8rem" }}
+								>
 									{formatAmount(player.balance)}
 								</Typography>
 							</Stack>

@@ -32,7 +32,7 @@ export const RouletteGame = () => {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-	const [selectedChip, setSelectedChip] = useState(100);
+	const [selectedBet, setSelectedBet] = useState(1000);
 	const [wheelSettled, setWheelSettled] = useState(false);
 	const [bettingDialogOpen, setBettingDialogOpen] = useState(false);
 	const sawSpinningRef = useRef(false);
@@ -41,9 +41,9 @@ export const RouletteGame = () => {
 
 	const handleSelectBet = useCallback(
 		(betType: BetType, betValue: string) => {
-			placeBet(betType, betValue, selectedChip);
+			placeBet(betType, betValue, selectedBet);
 		},
-		[placeBet, selectedChip],
+		[placeBet, selectedBet],
 	);
 
 	const handleWheelSettle = useCallback(() => {
@@ -130,9 +130,9 @@ export const RouletteGame = () => {
 					open={bettingDialogOpen}
 					onClose={() => setBettingDialogOpen(false)}
 					balance={balance}
-					selectedChip={selectedChip}
-					onSelectChip={setSelectedChip}
-					onSelectBet={handleSelectBet}
+					selectedBet={selectedBet}
+					onSelectBet={setSelectedBet}
+					onPlaceBet={handleSelectBet}
 					disabled={bettingDisabled}
 					winningNumber={winningNumber}
 					showResult={wheelSettled}
@@ -141,6 +141,7 @@ export const RouletteGame = () => {
 		);
 	}
 
+	// Desktop: wheel + sidebar on top, full-width betting board on bottom
 	return (
 		<Paper
 			sx={{
@@ -151,39 +152,39 @@ export const RouletteGame = () => {
 				overflow: "hidden",
 				display: "flex",
 				flexDirection: "column",
+				gap: 2,
 			}}
 		>
-			<Stack direction="row" gap={4} flex={1} minHeight={0}>
-				<Stack direction="column" flex={1} minHeight={0} gap={2}>
-					<Box flex={1} minHeight={200} p={2}>
-						{wheelElement}
-					</Box>
-					<Stack direction="row" alignItems="start" gap={2}>
-						<Box flex={1}>
-							<BettingBoard
-								onSelectBet={handleSelectBet}
-								disabled={bettingDisabled}
-								winningNumber={winningNumber}
-								showResult={wheelSettled}
-							/>
-						</Box>
-						<BetAmount
-							balance={balance}
-							selectedChip={selectedChip}
-							onSelectChip={setSelectedChip}
-							disabled={bettingDisabled}
-						/>
-					</Stack>
-				</Stack>
-				<Box flex={0.5} display="flex" flexDirection="column" gap={2}>
+			{/* Top row: wheel + bet selector + activity log + player list */}
+			<Stack direction="row" gap={2} flex={1} minHeight={0}>
+				<Box flex={1} minHeight={0}>
+					{wheelElement}
+				</Box>
+				<BetAmount
+					balance={balance}
+					selectedBet={selectedBet}
+					onSelectBet={setSelectedBet}
+					disabled={bettingDisabled}
+				/>
+				<Stack direction="column" width={260} flexShrink={0} gap={2} minHeight={0}>
 					<Box flex={1} minHeight={0} overflow="hidden">
 						<ActivityLog activityLog={activityLog} />
 					</Box>
-					<Box flex={0.6} minHeight={0}>
+					<Box flexShrink={0} minHeight={120}>
 						<PlayerList players={players} currentUserId={userId} />
 					</Box>
-				</Box>
+				</Stack>
 			</Stack>
+
+			{/* Bottom: betting board */}
+			<Box flexShrink={0}>
+				<BettingBoard
+					onSelectBet={handleSelectBet}
+					disabled={bettingDisabled}
+					winningNumber={winningNumber}
+					showResult={wheelSettled}
+				/>
+			</Box>
 		</Paper>
 	);
 };

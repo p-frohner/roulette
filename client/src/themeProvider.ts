@@ -4,24 +4,37 @@ export const theme = createTheme({
 	palette: {
 		mode: "dark",
 		primary: {
-			main: "#26a14ba7",
+			main: "#1D6B45",
 			contrastText: "#fff",
 		},
 		secondary: {
-			main: "#afb3b0",
+			main: "#C9A84C",
+			contrastText: "#000",
 		},
 		background: {
-			default: "#1a1a1a",
+			default: "#141414",
+			paper: "#1E1E1E",
 		},
+	},
+	typography: {
+		fontFamily: '"DM Sans", "Helvetica Neue", sans-serif',
 	},
 	components: {
 		MuiCssBaseline: {
 			styleOverrides: {
 				root: {
 					body: {
-						backgroundColor: "#1a1a1a !important",
+						backgroundColor: "#141414 !important",
 						minHeight: "100vh",
 					},
+				},
+			},
+		},
+		MuiPaper: {
+			styleOverrides: {
+				root: {
+					backgroundImage: "none",
+					border: "1px solid rgba(201,168,76,0.15)",
 				},
 			},
 		},
@@ -29,7 +42,7 @@ export const theme = createTheme({
 			styleOverrides: {
 				root: {
 					backdropFilter: "blur(8px)",
-					backgroundColor: "rgba(0, 0, 0, 0.4)",
+					backgroundColor: "rgba(0, 0, 0, 0.5)",
 				},
 			},
 		},
@@ -46,14 +59,15 @@ export const theme = createTheme({
 				root: {
 					textTransform: "none",
 					fontWeight: 600,
-					borderRadius: 20,
+					borderRadius: 8,
+					letterSpacing: "0.04em",
 				},
 			},
 		},
 		MuiDialog: {
 			styleOverrides: {
 				paper: {
-					borderRadius: 10,
+					borderRadius: 4,
 				},
 			},
 		},

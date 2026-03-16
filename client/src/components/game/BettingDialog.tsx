@@ -8,9 +8,9 @@ type Props = {
 	open: boolean;
 	onClose: () => void;
 	balance: number;
-	selectedChip: number;
-	onSelectChip: (amount: number) => void;
-	onSelectBet: (betType: BetType, betValue: string) => void;
+	selectedBet: number;
+	onSelectBet: (amount: number) => void;
+	onPlaceBet: (betType: BetType, betValue: string) => void;
 	disabled: boolean;
 	winningNumber: number | null;
 	showResult: boolean;
@@ -20,9 +20,9 @@ export const BettingDialog = ({
 	open,
 	onClose,
 	balance,
-	selectedChip,
-	onSelectChip,
+	selectedBet,
 	onSelectBet,
+	onPlaceBet,
 	disabled,
 	winningNumber,
 	showResult,
@@ -47,13 +47,13 @@ export const BettingDialog = ({
 				<Stack spacing={2}>
 					<BetAmount
 						balance={balance}
-						selectedChip={selectedChip}
-						onSelectChip={onSelectChip}
+						selectedBet={selectedBet}
+						onSelectBet={onSelectBet}
 						disabled={disabled}
 						horizontal
 					/>
 					<BettingBoard
-						onSelectBet={onSelectBet}
+						onSelectBet={onPlaceBet}
 						disabled={disabled}
 						winningNumber={winningNumber}
 						showResult={showResult}

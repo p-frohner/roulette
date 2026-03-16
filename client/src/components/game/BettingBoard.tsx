@@ -31,7 +31,7 @@ export const BettingBoard = ({
 				<OutsideBet
 					disabled={disabled}
 					isWinner={showResult && isWinnerOutside("color", "red", winningNumber)}
-					bgColor="#C62828"
+					bgColor="#9B1B1B"
 					onClick={() => handleClick("color", "red")}
 				>
 					Red
@@ -63,7 +63,9 @@ export const BettingBoard = ({
 			{/* Number grid */}
 			<Box
 				display="grid"
-				gridTemplateColumns={vertical ? "repeat(3, 1fr)" : "auto repeat(12, 1fr)"}
+				gridTemplateColumns={
+					vertical ? "repeat(3, 1fr)" : "minmax(45px, 70px) repeat(12, minmax(28px, 1fr))"
+				}
 				gridTemplateRows={vertical ? undefined : "repeat(3, 1fr)"}
 				gap={0.5}
 				mb={1}
@@ -76,7 +78,7 @@ export const BettingBoard = ({
 					style={
 						vertical
 							? { gridColumn: "1 / 4", fontSize: "1.2rem" }
-							: { gridRow: "1 / 4", fontSize: "1.2rem", width: 70 }
+							: { gridRow: "1 / 4", fontSize: "1.2rem" }
 					}
 				>
 					0
@@ -99,11 +101,13 @@ export const BettingBoard = ({
 			{/* Dozens */}
 			<Box
 				display="grid"
-				gridTemplateColumns={vertical ? "repeat(3, 1fr)" : "auto repeat(3, 1fr)"}
+				gridTemplateColumns={
+					vertical ? "repeat(3, 1fr)" : "minmax(45px, 70px) repeat(3, 1fr)"
+				}
 				gap={0.5}
 				mb={1}
 			>
-				{!vertical && <Box width={70} />}
+				{!vertical && <Box sx={{ minWidth: 45, maxWidth: 70 }} />}
 				<OutsideBet
 					disabled={disabled}
 					isWinner={showResult && isWinnerOutside("dozens", "first", winningNumber)}
@@ -140,18 +144,18 @@ const Cell = styled("button", {
 		backgroundColor: bgColor,
 		color: "#fff",
 		fontWeight: 700,
-		fontSize: "1rem",
-		border: isWinner ? "3px solid #FFD700" : "3px solid rgba(255,255,255,0.2)",
-		borderRadius: 4,
+		fontSize: "0.9rem",
+		border: isWinner ? "3px solid #C9A84C" : "3px solid transparent",
+		borderRadius: 3,
 		cursor: disabled ? "default" : "pointer",
-		opacity: disabled ? 0.7 : 1,
+		opacity: disabled ? 0.65 : 1,
 		padding: "10px 0",
-		transition: "transform 0.1s, box-shadow 0.2s",
-		boxShadow: isWinner ? "0 0 16px rgba(255, 215, 0, 0.6)" : "none",
+		transition: "background-color 0.15s, border-color 0.15s, box-shadow 0.2s",
+		boxShadow: isWinner ? "0 0 0 2px #C9A84C, 0 0 20px rgba(201,168,76,0.8)" : "none",
 		"&:hover": !disabled
 			? {
-					transform: "scale(1.05)",
-					boxShadow: "0 0 12px rgba(255, 215, 0, 0.4)",
+					backgroundColor: "rgba(201,168,76,0.15)",
+					borderColor: "rgba(201,168,76,0.6)",
 				}
 			: {},
 	}),
@@ -164,21 +168,22 @@ const OutsideBet = styled("button", {
 		display: "flex",
 		alignItems: "center",
 		justifyContent: "center",
-		backgroundColor: bgColor ?? "rgba(255,255,255,0.05)",
+		backgroundColor: bgColor ?? "#2A2A2A",
 		color: "#fff",
 		fontWeight: 600,
-		fontSize: "0.9rem",
-		border: isWinner ? "3px solid #FFD700" : "3px solid rgba(255,255,255,0.2)",
-		borderRadius: 4,
+		fontSize: "0.85rem",
+		letterSpacing: "0.04em",
+		border: isWinner ? "3px solid #C9A84C" : "3px solid transparent",
+		borderRadius: 3,
 		cursor: disabled ? "default" : "pointer",
-		opacity: disabled ? 0.7 : 1,
+		opacity: disabled ? 0.65 : 1,
 		padding: "10px 8px",
-		transition: "transform 0.1s, box-shadow 0.2s",
-		boxShadow: isWinner ? "0 0 16px rgba(255, 215, 0, 0.6)" : "none",
+		transition: "background-color 0.15s, border-color 0.15s, box-shadow 0.2s",
+		boxShadow: isWinner ? "0 0 0 2px #C9A84C, 0 0 20px rgba(201,168,76,0.8)" : "none",
 		"&:hover": !disabled
 			? {
-					transform: "scale(1.02)",
-					boxShadow: "0 0 8px rgba(255, 215, 0, 0.3)",
+					backgroundColor: bgColor ? "rgba(201,168,76,0.15)" : "#3A3A3A",
+					borderColor: "rgba(201,168,76,0.6)",
 				}
 			: {},
 	}),
