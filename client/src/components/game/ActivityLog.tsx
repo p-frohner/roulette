@@ -24,7 +24,19 @@ export const ActivityLog = ({ activityLog }: { activityLog: ActivityLogEntry[] }
 	}, [activityLog]);
 
 	return (
-		<Box sx={{ border: 1, borderColor: "rgba(255,255,255,0.1)", borderRadius: 2, p: 2, height: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column", minHeight: 0 }}>
+		<Box
+			sx={{
+				border: 1,
+				borderColor: "rgba(255,255,255,0.1)",
+				borderRadius: 2,
+				p: 2,
+				height: "100%",
+				boxSizing: "border-box",
+				display: "flex",
+				flexDirection: "column",
+				minHeight: 0,
+			}}
+		>
 			{/* Activity log */}
 			<Box
 				ref={scrollRef}

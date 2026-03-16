@@ -12,12 +12,11 @@ export interface ActivityLogSlice {
 let logIdCounter = 0;
 const nextLogId = () => `log-${++logIdCounter}`;
 
-export const createActivityLogSlice: StateCreator<
-	RouletteStore,
-	[],
-	[],
-	ActivityLogSlice
-> = (set, get, _api) => ({
+export const createActivityLogSlice: StateCreator<RouletteStore, [], [], ActivityLogSlice> = (
+	set,
+	get,
+	_api,
+) => ({
 	activityLog: [],
 
 	addActivityLog: (message, variant) => {
@@ -37,9 +36,6 @@ export const createActivityLogSlice: StateCreator<
 
 	addBetLog: (playerName, betValue, amount) => {
 		const { addActivityLog } = get();
-		addActivityLog(
-			`${playerName} bet ${formatAmount(amount)} on ${betValue}`,
-			"bet",
-		);
+		addActivityLog(`${playerName} bet ${formatAmount(amount)} on ${betValue}`, "bet");
 	},
 });

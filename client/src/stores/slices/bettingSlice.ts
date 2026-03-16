@@ -1,9 +1,5 @@
 import type { StateCreator } from "zustand";
-import type {
-	BetAcceptedMessage,
-	BetRejectedMessage,
-	BetType,
-} from "../../types/game";
+import type { BetAcceptedMessage, BetRejectedMessage, BetType } from "../../types/game";
 import { showGlobalNotification } from "../../utils/notificationHandler";
 import type { RouletteStore } from "../rouletteStore";
 
@@ -23,12 +19,11 @@ export interface BettingSlice {
 	clearLastBetResponse: () => void;
 }
 
-export const createBettingSlice: StateCreator<
-	RouletteStore,
-	[],
-	[],
-	BettingSlice
-> = (set, get, _api) => ({
+export const createBettingSlice: StateCreator<RouletteStore, [], [], BettingSlice> = (
+	set,
+	get,
+	_api,
+) => ({
 	balance: 0,
 	lastBetResponse: null,
 	pendingBets: [],
