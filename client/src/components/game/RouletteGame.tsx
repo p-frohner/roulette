@@ -157,15 +157,16 @@ export const RouletteGame = () => {
 		>
 			{/* Top row: wheel + bet selector + activity log + player list */}
 			<Stack direction="row" gap={2} flex={1} minHeight={0}>
-				<Box flex={1} minHeight={0}>
-					{wheelElement}
-				</Box>
 				<BetAmount
 					balance={balance}
 					selectedBet={selectedBet}
 					onSelectBet={setSelectedBet}
 					disabled={bettingDisabled}
 				/>
+
+				<Box flex={1} minHeight={0}>
+					{wheelElement}
+				</Box>
 				<Stack direction="column" width={260} flexShrink={0} gap={2} minHeight={0}>
 					<Box flex={1} minHeight={0} overflow="hidden">
 						<ActivityLog activityLog={activityLog} />
