@@ -20,16 +20,16 @@ const CHIP_COLORS: Record<number, { bg: string; text: string }> = {
 };
 
 const chipSx = (chip: { bg: string; text: string }, isSelected: boolean, disabled: boolean) => ({
-	width: 48,
-	height: 48,
-	minWidth: "48px !important",
+	width: 56,
+	height: 56,
+	minWidth: "56px !important",
 	borderRadius: "50%",
 	padding: 0,
 	backgroundColor: chip.bg,
 	color: chip.text,
 	border: isSelected ? "3px solid #C9A84C" : "3px solid rgba(255,255,255,0.25)",
 	boxShadow: isSelected ? "0 0 12px rgba(201,168,76,0.7)" : "inset 0 -2px 4px rgba(0,0,0,0.4)",
-	fontSize: "0.6rem",
+	fontSize: "1rem",
 	fontWeight: 700,
 	fontFamily: '"JetBrains Mono", monospace',
 	transition: "box-shadow 0.2s, transform 0.1s, border-color 0.15s",

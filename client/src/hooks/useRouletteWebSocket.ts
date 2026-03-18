@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Subject, Subscription, timer, zip } from "rxjs";
 import { filter, retry, share, switchMap, take, timeout } from "rxjs/operators";
 import { type WebSocketSubject, webSocket } from "rxjs/webSocket";
@@ -12,13 +12,40 @@ const getWebSocketUrl = () => {
 	return `${url.origin}/ws`;
 };
 
-export const useRouletteWebSocket = () => {
-	const store = useRouletteStore();
+export interface RouletteWebSocketHandle {
+	placeBet: (betType: BetType, betValue: string, amount: number) => void;
+	notifySettled: () => void;
+	wheelSettled: boolean;
+}
+
+export const useRouletteWebSocket = (): RouletteWebSocketHandle => {
 	const playerName = useRouletteStore((s) => s.playerName);
+	const gamePhase = useRouletteStore((s) => s.gamePhase);
 	const subjectRef = useRef<WebSocketSubject<ServerMessage> | null>(null);
 	const settled$Ref = useRef(new Subject<void>());
+	const [wheelSettled, setWheelSettled] = useState(false);
+	const sawSpinningRef = useRef(false);
 
-	const notifySettled = useCallback(() => settled$Ref.current.next(), []);
+	const notifySettled = useCallback(() => {
+		setWheelSettled(true);
+		settled$Ref.current.next();
+	}, []);
+
+	// Track phase transitions for late-join detection
+	useEffect(() => {
+		if (gamePhase === "SPINNING") {
+			setWheelSettled(false);
+			sawSpinningRef.current = true;
+		} else if (gamePhase === "RESULT") {
+			// Late join: if we never saw SPINNING for this round, settle immediately
+			if (!sawSpinningRef.current) {
+				setWheelSettled(true);
+			}
+		} else if (gamePhase === "BETTING") {
+			setWheelSettled(false);
+			sawSpinningRef.current = false;
+		}
+	}, [gamePhase]);
 
 	useEffect(() => {
 		if (!playerName) {
@@ -103,7 +130,7 @@ export const useRouletteWebSocket = () => {
 		} as unknown as ServerMessage);
 	}, []);
 
-	return { ...store, placeBet, notifySettled };
+	return { placeBet, notifySettled, wheelSettled };
 };
 
 const handleServerMessage = (

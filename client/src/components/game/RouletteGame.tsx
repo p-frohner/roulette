@@ -1,5 +1,5 @@
 import { Box, Button, Paper, Stack, useMediaQuery, useTheme } from "@mui/material";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouletteWebSocket } from "../../hooks/useRouletteWebSocket";
 import { useRouletteStore } from "../../stores/rouletteStore";
 import type { BetType } from "../../types/game";
@@ -13,8 +13,6 @@ import { PlayerList } from "./PlayerList";
 import { RouletteWheel } from "./RouletteWheel";
 
 export const RouletteGame = () => {
-	const playerName = useRouletteStore((s) => s.playerName);
-	const setPlayerName = useRouletteStore((s) => s.setPlayerName);
 	const {
 		connected,
 		reconnectAttempt,
@@ -25,17 +23,16 @@ export const RouletteGame = () => {
 		winningNumber,
 		activityLog,
 		players,
-		placeBet,
-		notifySettled,
-	} = useRouletteWebSocket();
+		playerName,
+		setPlayerName,
+	} = useRouletteStore();
+	const { placeBet, notifySettled, wheelSettled } = useRouletteWebSocket();
 
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
 	const [selectedBet, setSelectedBet] = useState(1000);
-	const [wheelSettled, setWheelSettled] = useState(false);
 	const [bettingDialogOpen, setBettingDialogOpen] = useState(false);
-	const sawSpinningRef = useRef(false);
 
 	const bettingDisabled = !connected || gamePhase !== "BETTING";
 
@@ -46,26 +43,7 @@ export const RouletteGame = () => {
 		[placeBet, selectedBet],
 	);
 
-	const handleWheelSettle = useCallback(() => {
-		setWheelSettled(true);
-		notifySettled();
-	}, [notifySettled]);
-
-	// Track phase transitions for late-join detection
-	useEffect(() => {
-		if (gamePhase === "SPINNING") {
-			setWheelSettled(false);
-			sawSpinningRef.current = true;
-		} else if (gamePhase === "RESULT") {
-			// Late join: if we never saw SPINNING for this round, settle immediately
-			if (!sawSpinningRef.current) {
-				setWheelSettled(true);
-			}
-		} else if (gamePhase === "BETTING") {
-			setWheelSettled(false);
-			sawSpinningRef.current = false;
-		}
-	}, [gamePhase]);
+	const handleWheelSettle = useCallback(() => notifySettled(), [notifySettled]);
 
 	// Auto-close betting dialog when betting phase ends
 	useEffect(() => {
