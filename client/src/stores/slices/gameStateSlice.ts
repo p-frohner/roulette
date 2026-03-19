@@ -22,28 +22,11 @@ export const createGameStateSlice: StateCreator<RouletteStore, [], [], GameState
 	winningNumber: null,
 
 	handleGameState: (phase, winningNumber, countdown) => {
-		const { addActivityLog, clearPendingBets, clearLastBetResponse } = get();
-
-		const updates: Partial<GameStateSlice> = {
-			gamePhase: phase,
-			winningNumber,
-		};
-
+		const updates: Partial<GameStateSlice> = { gamePhase: phase, winningNumber };
 		if (countdown !== undefined) {
 			updates.countdown = countdown;
 		}
-
-		if (phase === "BETTING") {
-			clearPendingBets();
-			clearLastBetResponse();
-			set(updates);
-			addActivityLog("Round started — Place your bets!", "info");
-		} else if (phase === "SPINNING") {
-			set(updates);
-			addActivityLog("No more bets!", "info");
-		} else {
-			set(updates);
-		}
+		set(updates);
 	},
 
 	setCountdown: (secondsRemaining) => {

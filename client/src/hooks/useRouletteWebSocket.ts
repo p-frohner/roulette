@@ -144,6 +144,13 @@ const handleServerMessage = (
 			break;
 		case "game_state":
 			store.handleGameState(msg.state, msg.winning_number ?? null, msg.countdown);
+			if (msg.state === "BETTING") {
+				store.clearPendingBets();
+				store.clearLastBetResponse();
+				store.addActivityLog("Round started — Place your bets!", "info");
+			} else if (msg.state === "SPINNING") {
+				store.addActivityLog("No more bets!", "info");
+			}
 			break;
 		case "countdown":
 			store.setCountdown(msg.seconds_remaining);

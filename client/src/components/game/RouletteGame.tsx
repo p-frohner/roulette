@@ -63,6 +63,7 @@ export const RouletteGame = () => {
 			countdown={countdown}
 			connected={connected}
 			reconnectAttempt={reconnectAttempt}
+			settled={wheelSettled}
 			onSettle={handleWheelSettle}
 		/>
 	);

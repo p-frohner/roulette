@@ -1,5 +1,5 @@
 import { Box, styled } from "@mui/material";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { COLOR_MAP, getNumberColor, WHEEL_ORDER } from "../../data/rouletteNumbers";
 import type { GamePhase } from "../../types/game";
@@ -23,6 +23,7 @@ interface Props {
 	countdown: number;
 	connected: boolean;
 	reconnectAttempt: number;
+	settled: boolean;
 	onSettle?: () => void;
 }
 
@@ -92,9 +93,9 @@ export const RouletteWheel = ({
 	countdown,
 	connected,
 	reconnectAttempt,
+	settled,
 	onSettle,
 }: Props) => {
-	const [settled, setSettled] = useState(false);
 
 	// Refs for direct DOM manipulation (60fps without re-renders)
 	const wheelGroupRef = useRef<SVGGElement>(null);
@@ -185,7 +186,6 @@ export const RouletteWheel = ({
 		if (gamePhase === "SPINNING") {
 			anim.phase = "FAST_SPIN";
 			anim.ballRadius = BALL_TRACK_RADIUS;
-			setSettled(false);
 		} else if (gamePhase === "RESULT" && winningNumber !== null) {
 			// Snapshot current state and compute deceleration target
 			const snapshot = {
@@ -208,7 +208,6 @@ export const RouletteWheel = ({
 			anim.decelStartTime = performance.now();
 			anim.phase = "DECELERATION";
 			anim.onSettle = () => {
-				setSettled(true);
 				onSettle?.();
 			};
 		} else if (gamePhase === "BETTING") {
@@ -216,7 +215,6 @@ export const RouletteWheel = ({
 			if (anim.phase !== "SETTLED") {
 				anim.phase = "IDLE";
 			}
-			setSettled(false);
 		}
 	}, [gamePhase, winningNumber, onSettle]);
 
