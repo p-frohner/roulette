@@ -95,30 +95,9 @@ func (c *Client) ReadPump() {
 
 		switch msg.Action {
 		case "reconnect":
-			if c.Hub.gameManager.ValidateSessionToken(msg.UserID, msg.SessionToken) {
-				c.UserID = msg.UserID
-				c.Hub.gameManager.SetUserName(msg.UserID, msg.Name)
-				c.Hub.gameManager.MarkUserReconnected(msg.UserID)
-
-				c.Hub.Register(c)
-				c.sendSessionData()
-				c.Hub.gameManager.NotifyPlayerJoined(c.UserID)
-			} else {
-				// Either the user was cleaned up or the token is invalid.
-				c.trySend(mustJSON(messages.SessionExpiredMessage{
-					Type:   "session_expired",
-					Reason: "Session expired due to inactivity",
-				}))
-			}
-
+			c.handleReconnect(msg)
 		case "set_name":
-			c.Hub.gameManager.RegisterUser(c.UserID)
-			c.Hub.gameManager.SetUserName(c.UserID, msg.Name)
-
-			c.Hub.Register(c)
-			c.sendSessionData()
-			c.Hub.gameManager.NotifyPlayerJoined(c.UserID)
-
+			c.handleSetName(msg)
 		case "place_bet":
 			c.handlePlaceBet(msg)
 		}
@@ -156,6 +135,33 @@ func (c *Client) WritePump() {
 			}
 		}
 	}
+}
+
+func (c *Client) handleReconnect(msg ClientMessage) {
+	if c.Hub.gameManager.ValidateSessionToken(msg.UserID, msg.SessionToken) {
+		c.UserID = msg.UserID
+		c.Hub.gameManager.SetUserName(msg.UserID, msg.Name)
+		c.Hub.gameManager.MarkUserReconnected(msg.UserID)
+
+		c.Hub.Register(c)
+		c.sendSessionData()
+		c.Hub.gameManager.NotifyPlayerJoined(c.UserID)
+	} else {
+		// Either the user was cleaned up or the token is invalid.
+		c.trySend(mustJSON(messages.SessionExpiredMessage{
+			Type:   "session_expired",
+			Reason: "Session expired due to inactivity",
+		}))
+	}
+}
+
+func (c *Client) handleSetName(msg ClientMessage) {
+	c.Hub.gameManager.RegisterUser(c.UserID)
+	c.Hub.gameManager.SetUserName(c.UserID, msg.Name)
+
+	c.Hub.Register(c)
+	c.sendSessionData()
+	c.Hub.gameManager.NotifyPlayerJoined(c.UserID)
 }
 
 // sendSessionData handles the Welcome and Game State sync sequence

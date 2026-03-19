@@ -43,6 +43,20 @@ type ConnectionChecker interface {
 	IsUserConnected(userID string) bool
 }
 
+// Clock abstracts time operations so the game loop can be tested without real delays.
+type Clock interface {
+	After(d time.Duration) <-chan time.Time
+	NewTicker(d time.Duration) (<-chan time.Time, func())
+}
+
+type realClock struct{}
+
+func (realClock) After(d time.Duration) <-chan time.Time { return time.After(d) }
+func (realClock) NewTicker(d time.Duration) (<-chan time.Time, func()) {
+	t := time.NewTicker(d)
+	return t.C, t.Stop
+}
+
 // Manager orchestrates the roulette game loop and manages users.
 type Manager struct {
 	users            map[string]*User
@@ -53,6 +67,7 @@ type Manager struct {
 	broadcast        BroadcastFunc
 	sendToUser       SendToUserFunc
 	connChecker      ConnectionChecker
+	clock            Clock
 	stopCh           chan struct{}
 	cleanupTicker    *time.Ticker
 	cleanupStopCh    chan struct{}
@@ -65,6 +80,7 @@ func NewManager(broadcastAll BroadcastFunc, sendToUser SendToUserFunc) *Manager 
 		session:       &GameSession{State: StateBetting},
 		broadcast:     broadcastAll,
 		sendToUser:    sendToUser,
+		clock:         realClock{},
 		stopCh:        make(chan struct{}),
 		cleanupStopCh: make(chan struct{}),
 	}
@@ -78,6 +94,12 @@ func NewManager(broadcastAll BroadcastFunc, sendToUser SendToUserFunc) *Manager 
 // SetConnectionChecker sets the connection checker (typically the Hub).
 func (m *Manager) SetConnectionChecker(cc ConnectionChecker) {
 	m.connChecker = cc
+}
+
+// SetClock replaces the clock used by the game loop. Call before RunGameLoop.
+// Intended for tests that need to control time without real delays.
+func (m *Manager) SetClock(c Clock) {
+	m.clock = c
 }
 
 // generateSessionToken creates a cryptographically random 16-byte hex token.
@@ -196,6 +218,22 @@ func (m *Manager) GetSessionToken(userID string) string {
 	return user.SessionToken
 }
 
+// playerSnapshot assembles a complete Player view from a User and connection status.
+// The caller must have already retrieved user from the users map.
+func (m *Manager) playerSnapshot(userID string, user *User) messages.Player {
+	user.mu.Lock()
+	p := messages.Player{
+		UserID:  userID,
+		Name:    user.Name,
+		Balance: user.Balance,
+	}
+	user.mu.Unlock()
+	if m.connChecker != nil {
+		p.Connected = m.connChecker.IsUserConnected(userID)
+	}
+	return p
+}
+
 // GetAllPlayers returns a snapshot of all players with their connection status.
 func (m *Manager) GetAllPlayers() []messages.Player {
 	m.usersMu.RLock()
@@ -203,22 +241,7 @@ func (m *Manager) GetAllPlayers() []messages.Player {
 
 	players := make([]messages.Player, 0, len(m.users))
 	for userID, user := range m.users {
-		user.mu.Lock()
-		name := user.Name
-		balance := user.Balance
-		user.mu.Unlock()
-
-		connected := false
-		if m.connChecker != nil {
-			connected = m.connChecker.IsUserConnected(userID)
-		}
-
-		players = append(players, messages.Player{
-			UserID:    userID,
-			Name:      name,
-			Balance:   balance,
-			Connected: connected,
-		})
+		players = append(players, m.playerSnapshot(userID, user))
 	}
 	return players
 }
@@ -280,19 +303,12 @@ func (m *Manager) NotifyPlayerJoined(userID string) {
 		return
 	}
 
-	user.mu.Lock()
-	name := user.Name
-	balance := user.Balance
-	user.mu.Unlock()
+	p := m.playerSnapshot(userID, user)
+	p.Connected = true // joining player is always connected
 
 	msg, err := json.Marshal(messages.PlayerJoinedMessage{
-		Type: "player_joined",
-		Player: messages.Player{
-			UserID:    userID,
-			Name:      name,
-			Balance:   balance,
-			Connected: true,
-		},
+		Type:   "player_joined",
+		Player: p,
 	})
 	if err != nil {
 		slog.Error("failed to marshal player joined", "error", err, "user_id", userID)
@@ -443,13 +459,13 @@ func (m *Manager) runBettingPhase() {
 
 	// Countdown
 	remaining := int(BettingDuration.Seconds())
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
+	tickC, stopTick := m.clock.NewTicker(1 * time.Second)
+	defer stopTick()
 	for remaining > 0 {
 		select {
 		case <-m.stopCh:
 			return
-		case <-ticker.C:
+		case <-tickC:
 		}
 		remaining--
 		m.sessionMu.Lock()
@@ -483,7 +499,7 @@ func (m *Manager) runSpinningPhase() {
 	select {
 	case <-m.stopCh:
 		return
-	case <-time.After(SpinningDuration):
+	case <-m.clock.After(SpinningDuration):
 	}
 }
 
@@ -553,7 +569,7 @@ func (m *Manager) runResultPhase() {
 	select {
 	case <-m.stopCh:
 		return
-	case <-time.After(ResultDuration):
+	case <-m.clock.After(ResultDuration):
 	}
 
 	// Sync all player balances in the player list after payouts
