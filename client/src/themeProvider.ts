@@ -18,6 +18,7 @@ export const theme = createTheme({
 	},
 	typography: {
 		fontFamily: '"DM Sans", "Helvetica Neue", sans-serif',
+		fontSize: 15,
 	},
 	components: {
 		MuiCssBaseline: {

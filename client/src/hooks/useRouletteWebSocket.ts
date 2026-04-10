@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Subject, Subscription, timer, zip } from "rxjs";
+import { type Observable, Subject, Subscription, timer, zip } from "rxjs";
 import { filter, retry, share, switchMap, take, timeout } from "rxjs/operators";
 import { type WebSocketSubject, webSocket } from "rxjs/webSocket";
 import { type RouletteStore, useRouletteStore } from "../stores/rouletteStore";
@@ -16,6 +16,7 @@ export interface RouletteWebSocketHandle {
 	placeBet: (betType: BetType, betValue: string, amount: number) => void;
 	notifySettled: () => void;
 	wheelSettled: boolean;
+	winningNumber$: Observable<number>;
 }
 
 export const useRouletteWebSocket = (): RouletteWebSocketHandle => {
@@ -23,6 +24,7 @@ export const useRouletteWebSocket = (): RouletteWebSocketHandle => {
 	const gamePhase = useRouletteStore((s) => s.gamePhase);
 	const subjectRef = useRef<WebSocketSubject<ServerMessage> | null>(null);
 	const settled$Ref = useRef(new Subject<void>());
+	const winningNumber$Ref = useRef(new Subject<number>());
 	const [wheelSettled, setWheelSettled] = useState(false);
 	const sawSpinningRef = useRef(false);
 
@@ -98,7 +100,12 @@ export const useRouletteWebSocket = (): RouletteWebSocketHandle => {
 		subs.add(
 			spinning$
 				.pipe(switchMap(() => zip(result$, settled$Ref.current).pipe(take(1))))
-				.subscribe(([resultMsg]) => useRouletteStore.getState().applyResultMsg(resultMsg)),
+				.subscribe(([resultMsg]) => {
+				const store = useRouletteStore.getState();
+				store.applyResultMsg(resultMsg);
+				store.addWinningNumber(resultMsg.winning_number);
+				winningNumber$Ref.current.next(resultMsg.winning_number);
+			}),
 		);
 
 		// session_expired: server kept the WS open, re-register immediately
@@ -130,7 +137,7 @@ export const useRouletteWebSocket = (): RouletteWebSocketHandle => {
 		} as unknown as ServerMessage);
 	}, []);
 
-	return { placeBet, notifySettled, wheelSettled };
+	return { placeBet, notifySettled, wheelSettled, winningNumber$: winningNumber$Ref.current };
 };
 
 const handleServerMessage = (

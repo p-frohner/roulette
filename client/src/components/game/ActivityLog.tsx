@@ -1,6 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import { useEffect, useRef } from "react";
 import type { ActivityLogEntry } from "../../types/game";
+import { scrollbarStyles } from "../../utils/scrollbarStyles";
 
 const variantColorMap: Record<ActivityLogEntry["variant"], string> = {
 	info: "text.secondary",
@@ -43,11 +44,7 @@ export const ActivityLog = ({ activityLog }: { activityLog: ActivityLogEntry[] }
 					flex: 1,
 					minHeight: 0,
 					overflowY: "auto",
-					"&::-webkit-scrollbar": { width: 4 },
-					"&::-webkit-scrollbar-thumb": {
-						backgroundColor: "rgba(201,168,76,0.3)",
-						borderRadius: 2,
-					},
+					...scrollbarStyles,
 				}}
 			>
 				{activityLog.length === 0 ? (
@@ -62,7 +59,6 @@ export const ActivityLog = ({ activityLog }: { activityLog: ActivityLogEntry[] }
 								component="span"
 								color="text.secondary"
 								sx={{
-									fontSize: "0.7rem",
 									mr: 1,
 									fontFamily: '"JetBrains Mono", monospace',
 									letterSpacing: "0.02em",
@@ -73,7 +69,7 @@ export const ActivityLog = ({ activityLog }: { activityLog: ActivityLogEntry[] }
 							<Typography
 								variant="body2"
 								component="span"
-								sx={{ color: variantColorMap[entry.variant], fontSize: "0.85rem" }}
+								sx={{ color: variantColorMap[entry.variant] }}
 							>
 								{entry.message}
 							</Typography>

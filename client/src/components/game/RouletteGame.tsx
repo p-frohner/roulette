@@ -5,12 +5,13 @@ import { useRouletteStore } from "../../stores/rouletteStore";
 import type { BetType } from "../../types/game";
 import { formatAmount } from "../../utils/format";
 import { ActivityLog } from "./ActivityLog";
-import { BetAmount } from "./BetAmount";
+import { BetsPanel } from "./BetsPanel";
 import { BettingBoard } from "./BettingBoard";
 import { BettingDialog } from "./BettingDialog";
 import { NameDialog } from "./NameDialog";
 import { PlayerList } from "./PlayerList";
 import { RouletteWheel } from "./RouletteWheel";
+import { WinningHistory } from "./WinningHistory";
 
 export const RouletteGame = () => {
 	const {
@@ -126,36 +127,46 @@ export const RouletteGame = () => {
 			sx={{
 				p: 2,
 				height: "100vh",
-				minHeight: "600px",
+				minHeight: "850px",
 				boxSizing: "border-box",
-				overflow: "hidden",
+				overflow: "visible",
 				display: "flex",
 				flexDirection: "column",
 				gap: 2,
 			}}
 		>
 			{/* Top row: wheel + bet selector + activity log + player list */}
-			<Stack direction="row" gap={2} flex={1} minHeight={0}>
-				<BetAmount
-					balance={balance}
-					selectedBet={selectedBet}
-					onSelectBet={setSelectedBet}
-					disabled={bettingDisabled}
-				/>
-
-				<Box flex={1} minHeight={0}>
+			<Box
+				display="grid"
+				gridTemplateColumns="minmax(260px, 1fr) minmax(0, auto) minmax(260px, 1fr)"
+				gap={2}
+				flex={1}
+				minHeight={0}
+				minWidth={0}
+			>
+				<Stack direction="column" gap={1} minHeight={0} height="100%">
+					<WinningHistory />
+					<BetsPanel
+						balance={balance}
+						selectedBet={selectedBet}
+						onSelectBet={setSelectedBet}
+						disabled={bettingDisabled}
+						winningNumber={winningNumber}
+						showResult={wheelSettled}
+					/>
+				</Stack>
+				<Box flex={1} minHeight={0} padding={2}>
 					{wheelElement}
 				</Box>
-				<Stack direction="column" width={260} flexShrink={0} gap={2} minHeight={0}>
-					<Box flex={1} minHeight={0} overflow="hidden">
-						<ActivityLog activityLog={activityLog} />
-					</Box>
+				<Stack direction="column" gap={2} minHeight={0}>
 					<Box flexShrink={0} minHeight={120}>
 						<PlayerList players={players} currentUserId={userId} />
 					</Box>
+					<Box flex={1} minHeight={0} overflow="hidden">
+						<ActivityLog activityLog={activityLog} />
+					</Box>
 				</Stack>
-			</Stack>
-
+			</Box>
 			{/* Bottom: betting board */}
 			<Box flexShrink={0}>
 				<BettingBoard

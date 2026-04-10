@@ -1,6 +1,7 @@
 import { Box, styled } from "@mui/material";
 import { COLOR_MAP, getNumberColor } from "../../data/rouletteNumbers";
 import type { BetType } from "../../types/game";
+import { isBetWinner } from "../../utils/betUtils";
 
 type Props = {
 	onSelectBet: (betType: BetType, betValue: string) => void;
@@ -30,7 +31,7 @@ export const BettingBoard = ({
 			<Box display="grid" gridTemplateColumns="repeat(4, 1fr)" gap={0.5} mb={1}>
 				<OutsideBet
 					disabled={disabled}
-					isWinner={showResult && isWinnerOutside("color", "red", winningNumber)}
+					isWinner={showResult && isBetWinner("color", "red", winningNumber)}
 					bgColor="#9B1B1B"
 					onClick={() => handleClick("color", "red")}
 				>
@@ -38,7 +39,7 @@ export const BettingBoard = ({
 				</OutsideBet>
 				<OutsideBet
 					disabled={disabled}
-					isWinner={showResult && isWinnerOutside("color", "black", winningNumber)}
+					isWinner={showResult && isBetWinner("color", "black", winningNumber)}
 					bgColor="#212121"
 					onClick={() => handleClick("color", "black")}
 				>
@@ -46,14 +47,14 @@ export const BettingBoard = ({
 				</OutsideBet>
 				<OutsideBet
 					disabled={disabled}
-					isWinner={showResult && isWinnerOutside("even_odd", "even", winningNumber)}
+					isWinner={showResult && isBetWinner("even_odd", "even", winningNumber)}
 					onClick={() => handleClick("even_odd", "even")}
 				>
 					Even
 				</OutsideBet>
 				<OutsideBet
 					disabled={disabled}
-					isWinner={showResult && isWinnerOutside("even_odd", "odd", winningNumber)}
+					isWinner={showResult && isBetWinner("even_odd", "odd", winningNumber)}
 					onClick={() => handleClick("even_odd", "odd")}
 				>
 					Odd
@@ -110,21 +111,21 @@ export const BettingBoard = ({
 				{!vertical && <Box sx={{ minWidth: 45, maxWidth: 70 }} />}
 				<OutsideBet
 					disabled={disabled}
-					isWinner={showResult && isWinnerOutside("dozens", "first", winningNumber)}
+					isWinner={showResult && isBetWinner("dozens", "first", winningNumber)}
 					onClick={() => handleClick("dozens", "first")}
 				>
 					1st 12
 				</OutsideBet>
 				<OutsideBet
 					disabled={disabled}
-					isWinner={showResult && isWinnerOutside("dozens", "second", winningNumber)}
+					isWinner={showResult && isBetWinner("dozens", "second", winningNumber)}
 					onClick={() => handleClick("dozens", "second")}
 				>
 					2nd 12
 				</OutsideBet>
 				<OutsideBet
 					disabled={disabled}
-					isWinner={showResult && isWinnerOutside("dozens", "third", winningNumber)}
+					isWinner={showResult && isBetWinner("dozens", "third", winningNumber)}
 					onClick={() => handleClick("dozens", "third")}
 				>
 					3rd 12
@@ -209,28 +210,3 @@ for (let row = 0; row < 12; row++) {
 	V_GRID.push(rowNumbers);
 }
 
-const isWinnerOutside = (
-	betType: BetType,
-	betValue: string,
-	winningNumber: number | null,
-): boolean => {
-	if (winningNumber === null || winningNumber === 0) {
-		return false;
-	}
-	switch (betType) {
-		case "color":
-			return getNumberColor(winningNumber) === betValue;
-		case "even_odd":
-			return betValue === "even" ? winningNumber % 2 === 0 : winningNumber % 2 !== 0;
-		case "dozens":
-			if (betValue === "first") {
-				return winningNumber >= 1 && winningNumber <= 12;
-			}
-			if (betValue === "second") {
-				return winningNumber >= 13 && winningNumber <= 24;
-			}
-			return winningNumber >= 25 && winningNumber <= 36;
-		default:
-			return false;
-	}
-};

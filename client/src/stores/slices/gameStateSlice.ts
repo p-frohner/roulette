@@ -7,9 +7,11 @@ export interface GameStateSlice {
 	gamePhase: GamePhase;
 	countdown: number;
 	winningNumber: number | null;
+	winningHistory: Array<{ id: number; n: number }>;
 	handleGameState: (phase: GamePhase, winningNumber: number | null, countdown?: number) => void;
 	setCountdown: (secondsRemaining: number) => void;
 	applyResultMsg: (msg: ResultMessage) => void;
+	addWinningNumber: (n: number) => void;
 }
 
 export const createGameStateSlice: StateCreator<RouletteStore, [], [], GameStateSlice> = (
@@ -20,6 +22,7 @@ export const createGameStateSlice: StateCreator<RouletteStore, [], [], GameState
 	gamePhase: "BETTING",
 	countdown: 0,
 	winningNumber: null,
+	winningHistory: [],
 
 	handleGameState: (phase, winningNumber, countdown) => {
 		const updates: Partial<GameStateSlice> = { gamePhase: phase, winningNumber };
@@ -40,5 +43,11 @@ export const createGameStateSlice: StateCreator<RouletteStore, [], [], GameState
 		if (msg.total_won > 0) {
 			addActivityLog(`You won ${formatAmount(msg.total_won)}!`, "win");
 		}
+	},
+
+	addWinningNumber: (n) => {
+		set((s) => ({
+			winningHistory: [{ id: Date.now(), n }, ...s.winningHistory].slice(0, 6),
+		}));
 	},
 });
