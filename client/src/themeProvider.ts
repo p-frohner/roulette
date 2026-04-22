@@ -1,4 +1,5 @@
 import { createTheme } from "@mui/material";
+import { GOLD, GOLD_15, GOLD_30, GOLD_60, MONO_FONT } from "./theme/colors";
 
 export const theme = createTheme({
 	palette: {
@@ -8,7 +9,7 @@ export const theme = createTheme({
 			contrastText: "#fff",
 		},
 		secondary: {
-			main: "#C9A84C",
+			main: GOLD,
 			contrastText: "#000",
 		},
 		background: {
@@ -35,8 +36,40 @@ export const theme = createTheme({
 			styleOverrides: {
 				root: {
 					backgroundImage: "none",
-					border: "1px solid rgba(201,168,76,0.15)",
+					border: `1px solid ${GOLD_15}`,
 				},
+			},
+		},
+		MuiOutlinedInput: {
+			styleOverrides: {
+				notchedOutline: {
+					borderColor: GOLD_30,
+				},
+				root: {
+					"&:hover .MuiOutlinedInput-notchedOutline": {
+						borderColor: GOLD_60,
+					},
+					"&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+						borderColor: GOLD,
+					},
+				},
+			},
+		},
+		MuiInputLabel: {
+			styleOverrides: {
+				root: {
+					"&.Mui-focused": { color: GOLD },
+				},
+			},
+		},
+		MuiSelect: {
+			styleOverrides: {
+				select: { fontFamily: MONO_FONT },
+			},
+		},
+		MuiMenuItem: {
+			styleOverrides: {
+				root: { fontFamily: MONO_FONT },
 			},
 		},
 		MuiBackdrop: {

@@ -1,5 +1,6 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Divider, Stack, Typography } from "@mui/material";
 import { useRouletteStore } from "../../stores/rouletteStore";
+import { GOLD_20 } from "../../theme/colors";
 import { scrollbarStyles } from "../../utils/scrollbarStyles";
 import { BetAmount } from "./BetAmount";
 import { BetList } from "./BetList";
@@ -26,22 +27,18 @@ export const BetsPanel = ({
 
 	return (
 		<GamePanel title="Bets" flex={1}>
-			<Box sx={{ display: "flex", flex: 1, minHeight: 0 }}>
-				<Box sx={{ width: "50%", flexShrink: 0, display: "flex" }}>
-					<BetAmount
-						balance={balance}
-						selectedBet={selectedBet}
-						onSelectBet={onSelectBet}
-						disabled={disabled}
-					/>
-				</Box>
+			<Stack direction="column" spacing={1.5} sx={{ flex: 1, minHeight: 0 }}>
+				<BetAmount
+					balance={balance}
+					selectedBet={selectedBet}
+					onSelectBet={onSelectBet}
+					disabled={disabled}
+				/>
+				<Divider sx={{ borderColor: GOLD_20 }} />
 				<Box
 					sx={{
-						width: "50%",
+						flex: 1,
 						overflowY: "auto",
-						display: "flex",
-						flexDirection: "column",
-						pt: 0.5,
 						...scrollbarStyles,
 					}}
 				>
@@ -53,7 +50,7 @@ export const BetsPanel = ({
 						</Typography>
 					)}
 				</Box>
-			</Box>
+			</Stack>
 		</GamePanel>
 	);
 };

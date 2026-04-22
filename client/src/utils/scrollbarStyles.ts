@@ -1,7 +1,9 @@
+import { GOLD_30 } from "../theme/colors";
+
 export const scrollbarStyles = {
 	"&::-webkit-scrollbar": { width: 4 },
 	"&::-webkit-scrollbar-thumb": {
-		backgroundColor: "rgba(201,168,76,0.3)",
+		backgroundColor: GOLD_30,
 		borderRadius: 2,
 	},
-} as const;
+};

@@ -50,7 +50,6 @@ export const BettingDialog = ({
 						selectedBet={selectedBet}
 						onSelectBet={onSelectBet}
 						disabled={disabled}
-						horizontal
 					/>
 					<BettingBoard
 						onSelectBet={onPlaceBet}

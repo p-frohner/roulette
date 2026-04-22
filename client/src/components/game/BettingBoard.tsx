@@ -102,9 +102,7 @@ export const BettingBoard = ({
 			{/* Dozens */}
 			<Box
 				display="grid"
-				gridTemplateColumns={
-					vertical ? "repeat(3, 1fr)" : "minmax(45px, 70px) repeat(3, 1fr)"
-				}
+				gridTemplateColumns={vertical ? "repeat(3, 1fr)" : "minmax(45px, 70px) repeat(3, 1fr)"}
 				gap={0.5}
 				mb={1}
 			>
@@ -209,4 +207,3 @@ for (let row = 0; row < 12; row++) {
 	}
 	V_GRID.push(rowNumbers);
 }
-

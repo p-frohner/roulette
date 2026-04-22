@@ -96,7 +96,6 @@ export const RouletteWheel = ({
 	settled,
 	onSettle,
 }: Props) => {
-
 	// Refs for direct DOM manipulation (60fps without re-renders)
 	const wheelGroupRef = useRef<SVGGElement>(null);
 	const ballRef = useRef<SVGCircleElement>(null);

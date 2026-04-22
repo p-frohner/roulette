@@ -101,11 +101,11 @@ export const useRouletteWebSocket = (): RouletteWebSocketHandle => {
 			spinning$
 				.pipe(switchMap(() => zip(result$, settled$Ref.current).pipe(take(1))))
 				.subscribe(([resultMsg]) => {
-				const store = useRouletteStore.getState();
-				store.applyResultMsg(resultMsg);
-				store.addWinningNumber(resultMsg.winning_number);
-				winningNumber$Ref.current.next(resultMsg.winning_number);
-			}),
+					const store = useRouletteStore.getState();
+					store.applyResultMsg(resultMsg);
+					store.addWinningNumber(resultMsg.winning_number);
+					winningNumber$Ref.current.next(resultMsg.winning_number);
+				}),
 		);
 
 		// session_expired: server kept the WS open, re-register immediately

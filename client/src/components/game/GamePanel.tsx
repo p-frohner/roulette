@@ -1,5 +1,5 @@
-import { Paper, Typography } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
+import { Paper, Typography } from "@mui/material";
 import type { ReactNode } from "react";
 
 type Props = {
@@ -24,7 +24,12 @@ export const GamePanel = ({ title, children, flex, minHeight, sx }: Props) => (
 		<Typography
 			variant="h6"
 			mb={2}
-			sx={{ letterSpacing: "0.06em", textTransform: "uppercase", fontSize: "0.95rem", flexShrink: 0 }}
+			sx={{
+				letterSpacing: "0.06em",
+				textTransform: "uppercase",
+				fontSize: "0.95rem",
+				flexShrink: 0,
+			}}
 		>
 			{title}
 		</Typography>

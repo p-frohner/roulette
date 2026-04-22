@@ -1,5 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import { useEffect, useRef } from "react";
+import { MONO_FONT } from "../../theme/colors";
 import type { ActivityLogEntry } from "../../types/game";
 import { scrollbarStyles } from "../../utils/scrollbarStyles";
 
@@ -60,7 +61,7 @@ export const ActivityLog = ({ activityLog }: { activityLog: ActivityLogEntry[] }
 								color="text.secondary"
 								sx={{
 									mr: 1,
-									fontFamily: '"JetBrains Mono", monospace',
+									fontFamily: MONO_FONT,
 									letterSpacing: "0.02em",
 								}}
 							>

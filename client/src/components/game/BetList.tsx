@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
 import { COLOR_MAP, getNumberColor } from "../../data/rouletteNumbers";
 import { useRouletteStore } from "../../stores/rouletteStore";
+import { GOLD, GOLD_80 } from "../../theme/colors";
 import type { BetType } from "../../types/game";
 import { isBetWinner } from "../../utils/betUtils";
 import { formatAmount } from "../../utils/format";
@@ -41,7 +42,6 @@ function getChipBgColor(betType: BetType, betValue: string): string {
 	}
 }
 
-
 export const BetList = ({ winningNumber, showResult }: Props) => {
 	const pendingBets = useRouletteStore((s) => s.pendingBets);
 
@@ -81,8 +81,8 @@ export const BetList = ({ winningNumber, showResult }: Props) => {
 							py: 0.25,
 							borderRadius: "12px",
 							bgcolor: getChipBgColor(bet.betType, bet.betValue),
-							border: winner ? "2px solid #C9A84C" : "2px solid transparent",
-							boxShadow: winner ? "0 0 0 2px #C9A84C, 0 0 12px rgba(201,168,76,0.8)" : "none",
+							border: winner ? `2px solid ${GOLD}` : "2px solid transparent",
+							boxShadow: winner ? `0 0 0 2px ${GOLD}, 0 0 12px ${GOLD_80}` : "none",
 							fontSize: "1rem",
 							lineHeight: 1.5,
 							whiteSpace: "nowrap",

@@ -1,4 +1,5 @@
 import { Box, Paper, Stack, Typography } from "@mui/material";
+import { MONO_FONT } from "../../theme/colors";
 import type { Player } from "../../types/game";
 import { formatAmount } from "../../utils/format";
 
@@ -58,7 +59,7 @@ export const PlayerList = ({ players, currentUserId }: Props) => {
 								<Typography
 									variant="body2"
 									fontWeight="bold"
-									sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.8rem" }}
+									sx={{ fontFamily: MONO_FONT, fontSize: "0.8rem" }}
 								>
 									{formatAmount(player.balance)}
 								</Typography>
