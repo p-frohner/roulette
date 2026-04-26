@@ -1,9 +1,11 @@
 package game
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 )
 
 // --- SpinWheel tests ---
@@ -261,6 +263,321 @@ func TestPlaceBet_Success(t *testing.T) {
 	}
 	m.session.mu.Unlock()
 	m.sessionMu.RUnlock()
+}
+
+// --- fakeClock helper ---
+
+type fakeClock struct {
+	afterCh chan time.Time
+	tickCh  chan time.Time
+}
+
+func newFakeClock() *fakeClock {
+	return &fakeClock{
+		afterCh: make(chan time.Time, 4),
+		tickCh:  make(chan time.Time, 25),
+	}
+}
+
+func (f *fakeClock) After(time.Duration) <-chan time.Time { return f.afterCh }
+func (f *fakeClock) NewTicker(time.Duration) (<-chan time.Time, func()) {
+	return f.tickCh, func() {}
+}
+func (f *fakeClock) advanceBetting() {
+	for i := 0; i < int(BettingDuration.Seconds()); i++ {
+		f.tickCh <- time.Now()
+	}
+}
+func (f *fakeClock) advanceAfter() { f.afterCh <- time.Now() }
+
+// --- ValidateSessionToken tests ---
+
+func TestValidateSessionToken_Valid(t *testing.T) {
+	m := NewManager(func([]byte) {}, func(string, []byte) {})
+	t.Cleanup(func() { m.Stop() })
+
+	user := m.RegisterUser("u1")
+	user.mu.Lock()
+	token := user.SessionToken
+	user.mu.Unlock()
+
+	if !m.ValidateSessionToken("u1", token) {
+		t.Error("expected valid token to be accepted")
+	}
+}
+
+func TestValidateSessionToken_Invalid(t *testing.T) {
+	m := NewManager(func([]byte) {}, func(string, []byte) {})
+	t.Cleanup(func() { m.Stop() })
+
+	m.RegisterUser("u1")
+
+	if m.ValidateSessionToken("u1", "wrong-token") {
+		t.Error("expected wrong token to be rejected")
+	}
+}
+
+func TestValidateSessionToken_UnknownUser(t *testing.T) {
+	m := NewManager(func([]byte) {}, func(string, []byte) {})
+	t.Cleanup(func() { m.Stop() })
+
+	if m.ValidateSessionToken("nonexistent", "any-token") {
+		t.Error("expected unknown user to be rejected")
+	}
+}
+
+// --- Cleanup tests ---
+
+func TestCleanup_RemovesDisconnectedUser(t *testing.T) {
+	m := NewManager(func([]byte) {}, func(string, []byte) {})
+	t.Cleanup(func() { m.Stop() })
+
+	userID := m.RegisterUser("u1").ID
+	past := time.Now().Add(-(disconnectGracePeriod + time.Minute))
+	user := m.GetUser(userID)
+	user.mu.Lock()
+	user.LastDisconnect = &past
+	user.mu.Unlock()
+
+	m.cleanupDisconnectedUsers(time.Now())
+
+	if m.GetUser(userID) != nil {
+		t.Error("expected user to be removed after grace period")
+	}
+}
+
+func TestCleanup_KeepsRecentlyDisconnectedUser(t *testing.T) {
+	m := NewManager(func([]byte) {}, func(string, []byte) {})
+	t.Cleanup(func() { m.Stop() })
+
+	userID := m.RegisterUser("u1").ID
+	recent := time.Now().Add(-time.Minute)
+	user := m.GetUser(userID)
+	user.mu.Lock()
+	user.LastDisconnect = &recent
+	user.mu.Unlock()
+
+	m.cleanupDisconnectedUsers(time.Now())
+
+	if m.GetUser(userID) == nil {
+		t.Error("expected user to be kept within grace period")
+	}
+}
+
+func TestCleanup_KeepsConnectedUser(t *testing.T) {
+	m := NewManager(func([]byte) {}, func(string, []byte) {})
+	t.Cleanup(func() { m.Stop() })
+
+	userID := m.RegisterUser("u1").ID
+	m.cleanupDisconnectedUsers(time.Now())
+
+	if m.GetUser(userID) == nil {
+		t.Error("expected connected user to be kept")
+	}
+}
+
+// --- Result phase tests ---
+
+func TestResultPhase_RefillsZeroBalance(t *testing.T) {
+	fc := newFakeClock()
+	m := NewManager(func([]byte) {}, func(string, []byte) {})
+	m.SetClock(fc)
+	t.Cleanup(func() { m.Stop() })
+
+	user := m.RegisterUser("u1")
+	user.mu.Lock()
+	user.Balance = 0
+	user.mu.Unlock()
+
+	fc.advanceAfter()
+	m.runResultPhase()
+
+	user.mu.Lock()
+	got := user.Balance
+	user.mu.Unlock()
+
+	if got != StartingBalance {
+		t.Errorf("expected balance %d after refill, got %d", StartingBalance, got)
+	}
+}
+
+func TestResultPhase_NoRefillWithPositiveBalance(t *testing.T) {
+	fc := newFakeClock()
+	m := NewManager(func([]byte) {}, func(string, []byte) {})
+	m.SetClock(fc)
+	t.Cleanup(func() { m.Stop() })
+
+	user := m.RegisterUser("u1")
+	user.mu.Lock()
+	user.Balance = 500
+	user.mu.Unlock()
+
+	fc.advanceAfter()
+	m.runResultPhase()
+
+	user.mu.Lock()
+	got := user.Balance
+	user.mu.Unlock()
+
+	if got != 500 {
+		t.Errorf("expected balance 500 (no refill), got %d", got)
+	}
+}
+
+func TestResultPhase_PlayerListContainsRefilledBalance(t *testing.T) {
+	fc := newFakeClock()
+	var broadcastMu sync.Mutex
+	var broadcasts [][]byte
+
+	m := NewManager(
+		func(data []byte) {
+			broadcastMu.Lock()
+			broadcasts = append(broadcasts, append([]byte{}, data...))
+			broadcastMu.Unlock()
+		},
+		func(string, []byte) {},
+	)
+	m.SetClock(fc)
+	t.Cleanup(func() { m.Stop() })
+
+	user := m.RegisterUser("u1")
+	user.mu.Lock()
+	user.Balance = 0
+	user.mu.Unlock()
+
+	fc.advanceAfter()
+	m.runResultPhase()
+
+	broadcastMu.Lock()
+	defer broadcastMu.Unlock()
+
+	var playerListFound bool
+	for _, b := range broadcasts {
+		var msg struct {
+			Type    string `json:"type"`
+			Players []struct {
+				UserID  string `json:"user_id"`
+				Balance int64  `json:"balance"`
+			} `json:"players"`
+		}
+		if err := json.Unmarshal(b, &msg); err != nil || msg.Type != "player_list" {
+			continue
+		}
+		playerListFound = true
+		for _, p := range msg.Players {
+			if p.UserID == "u1" && p.Balance != StartingBalance {
+				t.Errorf("player_list shows balance %d, want %d (refill must happen before broadcast)", p.Balance, StartingBalance)
+			}
+		}
+	}
+	if !playerListFound {
+		t.Error("no player_list broadcast found")
+	}
+}
+
+// --- Game loop integration tests ---
+
+func TestGameLoop_FullCycle_NoBets(t *testing.T) {
+	fc := newFakeClock()
+
+	type userMsg struct {
+		uid  string
+		data []byte
+	}
+	userMsgs := make(chan userMsg, 10)
+
+	m := NewManager(
+		func([]byte) {},
+		func(uid string, data []byte) { userMsgs <- userMsg{uid, data} },
+	)
+	m.SetClock(fc)
+	t.Cleanup(func() { m.Stop() })
+
+	m.RegisterUser("u1")
+
+	fc.advanceBetting()
+	fc.advanceAfter() // spinning
+	fc.advanceAfter() // result
+
+	go m.RunGameLoop()
+
+	select {
+	case msg := <-userMsgs:
+		var result struct {
+			Type    string        `json:"type"`
+			Balance int64         `json:"balance"`
+			Payouts []interface{} `json:"payouts"`
+		}
+		if err := json.Unmarshal(msg.data, &result); err != nil {
+			t.Fatalf("unmarshal error: %v", err)
+		}
+		if result.Type != "result" {
+			t.Errorf("expected result message type, got %s", result.Type)
+		}
+		if result.Balance != StartingBalance {
+			t.Errorf("expected balance %d (no bets), got %d", StartingBalance, result.Balance)
+		}
+		if len(result.Payouts) != 0 {
+			t.Errorf("expected 0 payouts, got %d", len(result.Payouts))
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("timeout waiting for result message")
+	}
+}
+
+func TestGameLoop_FullCycle_PlayerListHasRefilledBalance(t *testing.T) {
+	fc := newFakeClock()
+	broadcasts := make(chan []byte, 50)
+
+	m := NewManager(
+		func(data []byte) {
+			select {
+			case broadcasts <- append([]byte{}, data...):
+			default:
+			}
+		},
+		func(string, []byte) {},
+	)
+	m.SetClock(fc)
+	t.Cleanup(func() { m.Stop() })
+
+	user := m.RegisterUser("u1")
+	user.mu.Lock()
+	user.Balance = 0
+	user.mu.Unlock()
+
+	fc.advanceBetting()
+	fc.advanceAfter() // spinning
+	fc.advanceAfter() // result
+
+	go m.RunGameLoop()
+
+	deadline := time.After(5 * time.Second)
+	for {
+		select {
+		case data := <-broadcasts:
+			var msg struct {
+				Type    string `json:"type"`
+				Players []struct {
+					UserID  string `json:"user_id"`
+					Balance int64  `json:"balance"`
+				} `json:"players"`
+			}
+			if err := json.Unmarshal(data, &msg); err != nil || msg.Type != "player_list" {
+				continue
+			}
+			for _, p := range msg.Players {
+				if p.UserID == "u1" {
+					if p.Balance != StartingBalance {
+						t.Errorf("player_list balance = %d, want %d after refill", p.Balance, StartingBalance)
+					}
+					return
+				}
+			}
+		case <-deadline:
+			t.Fatal("timeout waiting for player_list with refilled balance")
+		}
+	}
 }
 
 // TestPlaceBet_ConcurrentBets verifies that simultaneous bets from multiple

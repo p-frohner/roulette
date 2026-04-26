@@ -409,6 +409,25 @@ func (m *Manager) RunGameLoop() {
 	}
 }
 
+// cleanupDisconnectedUsers removes users who have been disconnected longer than the grace period.
+func (m *Manager) cleanupDisconnectedUsers(now time.Time) {
+	m.usersMu.Lock()
+	for userID, user := range m.users {
+		user.mu.Lock()
+		lastDisconnect := user.LastDisconnect
+		user.mu.Unlock()
+
+		if lastDisconnect != nil && now.Sub(*lastDisconnect) > disconnectGracePeriod {
+			slog.Info("cleaning up disconnected user",
+				"user_id", userID,
+				"name", user.Name,
+				"disconnected_for", now.Sub(*lastDisconnect))
+			delete(m.users, userID)
+		}
+	}
+	m.usersMu.Unlock()
+}
+
 // runCleanup periodically removes users who have been disconnected for too long.
 func (m *Manager) runCleanup() {
 	m.cleanupTicker = time.NewTicker(cleanupInterval)
@@ -419,22 +438,7 @@ func (m *Manager) runCleanup() {
 		case <-m.cleanupStopCh:
 			return
 		case <-m.cleanupTicker.C:
-			now := time.Now()
-			m.usersMu.Lock()
-			for userID, user := range m.users {
-				user.mu.Lock()
-				lastDisconnect := user.LastDisconnect
-				user.mu.Unlock()
-
-				if lastDisconnect != nil && now.Sub(*lastDisconnect) > disconnectGracePeriod {
-					slog.Info("cleaning up disconnected user",
-						"user_id", userID,
-						"name", user.Name,
-						"disconnected_for", now.Sub(*lastDisconnect))
-					delete(m.users, userID)
-				}
-			}
-			m.usersMu.Unlock()
+			m.cleanupDisconnectedUsers(time.Now())
 		}
 	}
 }
@@ -572,24 +576,24 @@ func (m *Manager) runResultPhase() {
 	case <-m.clock.After(ResultDuration):
 	}
 
-	// Sync all player balances in the player list after payouts
-	// (delayed until after ResultDuration so the wheel animation finishes first)
-	m.BroadcastPlayerList()
-
-	// Refill any players who hit zero
+	// Refill any players who hit zero before broadcasting the player list,
+	// so the list reflects the correct post-refill balance.
 	m.usersMu.RLock()
 	for userID, user := range m.users {
 		user.mu.Lock()
 		if user.Balance == 0 {
 			user.Balance = StartingBalance
 			user.mu.Unlock()
-			// Notify all clients of balance refill
 			m.NotifyBalanceUpdated(userID, StartingBalance)
 		} else {
 			user.mu.Unlock()
 		}
 	}
 	m.usersMu.RUnlock()
+
+	// Sync all player balances after payouts and refills.
+	// (delayed until after ResultDuration so the wheel animation finishes first)
+	m.BroadcastPlayerList()
 }
 
 func (m *Manager) broadcastGameState(state messages.GamePhase, winningNumber int, countdown int) {

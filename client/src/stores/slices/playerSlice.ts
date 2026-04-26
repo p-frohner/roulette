@@ -40,9 +40,9 @@ export const createPlayerSlice: StateCreator<RouletteStore, [], [], PlayerSlice>
 	},
 
 	updatePlayerBalance: (userId, balance) => {
-		const { players } = get();
-		set({
-			players: players.map((p: Player) => (p.user_id === userId ? { ...p, balance } : p)),
-		});
+		set((state) => ({
+			players: state.players.map((p: Player) => (p.user_id === userId ? { ...p, balance } : p)),
+			...(userId === state.userId ? { balance } : {}),
+		}));
 	},
 });
