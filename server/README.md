@@ -1,10 +1,13 @@
-# Service Tracker - Go Backend
+# Game of Roulette — Go Server
 
-This is the Go backend for the service tracker. It uses a contract-first and schema-first architecture to ensure the API and Database are always in sync.
+Real-time WebSocket game server for a multiplayer roulette game. Manages game state, player sessions, and bet resolution across all connected clients.
 
 ## Tech Stack
- - Language: Go 1.21+
- - Hot Reload: Air
+
+- Language: Go 1.25
+- Router: [chi](https://github.com/go-chi/chi)
+- WebSocket: [coder/websocket](https://github.com/coder/websocket)
+- Hot Reload: Air
 
 ## Environment Variables
 
@@ -15,16 +18,16 @@ This is the Go backend for the service tracker. It uses a contract-first and sch
 ## Local Development
 
 ### Prerequisites
-To run this project locally, you need to install:
 
- - Go (1.21+): The programming language runtime. [Install Go](https://go.dev/doc/install)
+- Go (1.21+): [Install Go](https://go.dev/doc/install)
+- Air for hot reload:
 
-```go
-go install [github.com/air-verse/air@latest](https://github.com/air-verse/air@latest)
+```bash
+go install github.com/air-verse/air@latest
 ```
 
-### Run the Application with hot reload
+### Run with hot reload
 
-```
+```bash
 air
 ```

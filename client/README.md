@@ -1,23 +1,26 @@
-# Game Of Roulette
+# Game of Roulette — React Client
 
-This is the React frontend for the game. 
+React frontend for a real-time multiplayer roulette game. WebSocket messages are handled as reactive streams using RxJS, with Zustand managing global game state.
 
 ## Tech Stack
- - Language: TypeScript
- - Framework: React 19
- - Build Tool: Vite
- - UI Library: Material UI (MUI)
- - WebSocket: Used to receive updates from the server 
+
+- Language: TypeScript
+- Framework: React 19
+- Router: TanStack Router
+- Build Tool: Vite
+- State Management: Zustand 5
+- Reactive Streams: RxJS 7
+- UI Library: Material UI (MUI)
+- Linter/Formatter: Biome
 
 ## Local Development
 
 ### Prerequisites
-To run this project locally, you need to install:
 
- - Node.js (20+): The JavaScript runtime. [Install Node.js](https://nodejs.org/)
+- Node.js (20+): [Install Node.js](https://nodejs.org/)
 
-### Run the Application
+### Run the application
 
-```
+```bash
 npm run dev
 ```

@@ -1,22 +1,29 @@
-# Game Of Roulette
+# Game of Roulette
 
-A real-time, multiplayer Roulette experience built to explore the synergy between a high-performance Go backend and a reactive React frontend.
+A real-time, multiplayer roulette game built with a Go WebSocket server and a reactive React frontend.
 
-[Demo](https://game-of-roulette.vercel.app)
+[Live Demo](https://game-of-roulette.vercel.app) — server sleeps after 15 min of inactivity, may take 30–60s to wake.
 
-The server stops after 15 mins of inactivity, may need 30-60 secs to start.
+## Architecture
 
-## Using Docker
-The easiest way to get started. This handles the React and the Go server together. 
+- **Go server** manages game lifecycle (betting → spinning → result), broadcasts state to all clients over WebSocket, and resolves bets
+- **React client** treats the WebSocket connection as an RxJS observable stream — game events compose into derived streams (e.g. winning number emits only after the spin animation settles)
+- **Zustand** holds client-side game state; components subscribe to slices rather than the raw socket
+- **TanStack Router** handles client-side routing
 
-From the root directory:
+## Running Locally
 
-```
+Docker is the easiest path — handles both services together:
+
+```bash
 make docker-up
 ```
 
-## TODO
- - Make it nicer for mobile
- - Improve sad animation of ball landing on the winning number
- - Look into "Provably Fair"
- - UI improvements, display bets, history
+See [`client/README.md`](client/README.md) and [`server/README.md`](server/README.md) for running each service independently.
+
+## Roadmap
+
+- Mobile layout improvements
+- Better ball landing animation on the winning number
+- Provably fair spin verification
+- Persistent bet history and player stats
